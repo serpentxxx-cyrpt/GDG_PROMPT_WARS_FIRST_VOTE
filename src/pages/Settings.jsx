@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { loginWithGoogle, logout } from "../services/firebase";
+import { setMusicMuted, getMusicMuted, setMusicVolume } from "../services/audioManager";
 
 const LANGUAGES = [
   { code: "en", label: "English", native: "English", flag: "🇬🇧" },
@@ -119,6 +120,11 @@ export default function Settings() {
   const [npcVoice,      setNpcVoice]      = useState(() => JSON.parse(localStorage.getItem("tfv_npc_voice") ?? "true"));
   const [voiceSpeed,    setVoiceSpeed]    = useState(() => Number(localStorage.getItem("tfv_voice_speed") ?? "0.75"));
   const [voiceVolume,   setVoiceVolume]   = useState(() => Number(localStorage.getItem("tfv_voice_volume") ?? "1.0"));
+  const [musicMuted,    setMusicMutedState] = useState(() => localStorage.getItem("tfv_music_muted") === "true");
+  const [musicVol,      setMusicVol]      = useState(() => Number(localStorage.getItem("tfv_music_vol") ?? "0.7"));
+
+  const handleMusicMute = (muted) => { setMusicMutedState(muted); setMusicMuted(muted); };
+  const handleMusicVol = (vol) => { setMusicVol(vol); setMusicVolume(vol); };
 
   // Gameplay
   const [showHints,     setShowHints]     = useState(() => JSON.parse(localStorage.getItem("tfv_hints") ?? "true"));
@@ -188,6 +194,11 @@ export default function Settings() {
 
     audio: (
       <Card icon="🔊" title="Audio & Voice">
+        <SettingRow label="🎵 Background Music" desc="Ambient Indian-themed music throughout the game">
+          <DashToggle id="toggle-music" checked={!musicMuted} onChange={v => handleMusicMute(!v)} />
+        </SettingRow>
+        <DashSlider id="slider-music-vol" min={0} max={1} step={0.05} value={musicVol} onChange={handleMusicVol}
+          label="Music Volume" format={v => `${Math.round(v * 100)}%`} />
         <SettingRow label="Sound Effects" desc="UI clicks, level transition sounds, IP gain/loss">
           <DashToggle id="toggle-sound" checked={soundEffects} onChange={v => handleToggle("tfv_sound", setSoundEffects, v)} />
         </SettingRow>

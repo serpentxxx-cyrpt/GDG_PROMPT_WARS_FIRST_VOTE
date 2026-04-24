@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Restore saved theme before anything renders
@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import VivekWidget from "./components/VivekWidget";
 import IPMeter from "./components/IPMeter";
 import DisqualificationModal from "./components/DisqualificationModal";
+import { startMusic, setMusicMuted, getMusicMuted } from "./services/audioManager";
 
 // Pages
 import Landing from "./pages/Landing";
@@ -70,6 +71,35 @@ class ErrorBoundary extends React.Component {
 }
 
 function App() {
+  const [musicMuted, setMusicMutedState] = useState(
+    () => localStorage.getItem('tfv_music_muted') === 'true'
+  );
+  const [musicStarted, setMusicStarted] = useState(false);
+
+  // Start music on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const handleFirstClick = () => {
+      if (!musicStarted) {
+        setMusicStarted(true);
+        startMusic();
+        setMusicMuted(musicMuted);
+      }
+    };
+    document.addEventListener('click', handleFirstClick, { once: true });
+    document.addEventListener('keydown', handleFirstClick, { once: true });
+    return () => {
+      document.removeEventListener('click', handleFirstClick);
+      document.removeEventListener('keydown', handleFirstClick);
+    };
+  }, []);
+
+  const toggleMusic = () => {
+    const next = !musicMuted;
+    setMusicMutedState(next);
+    setMusicMuted(next);
+    if (!musicStarted) { startMusic(); setMusicStarted(true); }
+  };
+
   return (
     <ErrorBoundary>
       <GameProvider>
@@ -95,6 +125,29 @@ function App() {
           {/* Vivek + IP Meter only show during game */}
           <VivekWidget />
           <IPMeter />
+
+          {/* Floating music toggle — always visible */}
+          <button
+            id="music-toggle-btn"
+            onClick={toggleMusic}
+            title={musicMuted ? 'Unmute background music' : 'Mute background music'}
+            style={{
+              position: 'fixed', bottom: '80px', right: '20px',
+              width: '42px', height: '42px', borderRadius: '50%',
+              background: musicMuted
+                ? 'rgba(30,58,92,0.85)'
+                : 'linear-gradient(135deg,#FF9933,#E67E22)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#fff', fontSize: '1.1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', zIndex: 9000,
+              backdropFilter: 'blur(8px)',
+              boxShadow: musicMuted ? 'none' : '0 0 14px rgba(255,153,51,0.4)',
+              transition: 'all 0.25s ease'
+            }}
+          >
+            {musicMuted ? '🔇' : '🎵'}
+          </button>
         </BrowserRouter>
       </GameProvider>
     </ErrorBoundary>
