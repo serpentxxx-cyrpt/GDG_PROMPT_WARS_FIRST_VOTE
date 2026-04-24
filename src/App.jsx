@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 const savedTheme = localStorage.getItem("tfv_theme") || "dark";
 document.documentElement.setAttribute("data-theme", savedTheme);
 
-import { GameProvider } from "./context/GameContext";
+import { GameProvider, useGame } from "./context/GameContext";
 import Navbar from "./components/Navbar";
 import VivekWidget from "./components/VivekWidget";
 import IPMeter from "./components/IPMeter";
@@ -70,6 +70,14 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+const ProtectedRoute = ({ children }) => {
+  const { userId } = useGame();
+  if (!userId) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
 function App() {
   const [musicMuted, setMusicMutedState] = useState(
     () => localStorage.getItem('tfv_music_muted') === 'true'
@@ -110,16 +118,16 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/learn" element={<Learn />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/create" element={<CharacterCreate />} />
-            <Route path="/prologue" element={<Prologue />} />
-            <Route path="/level/0" element={<Level0 />} />
-            <Route path="/level/1" element={<Level1 />} />
-            <Route path="/level/2" element={<Level2 />} />
-            <Route path="/level/3" element={<Level3 />} />
-            <Route path="/level/4" element={<Level4 />} />
-            <Route path="/level/5" element={<Level5 />} />
-            <Route path="/epilogue" element={<Epilogue />} />
-            <Route path="/certificate" element={<Certificate />} />
+            <Route path="/create" element={<ProtectedRoute><CharacterCreate /></ProtectedRoute>} />
+            <Route path="/prologue" element={<ProtectedRoute><Prologue /></ProtectedRoute>} />
+            <Route path="/level/0" element={<ProtectedRoute><Level0 /></ProtectedRoute>} />
+            <Route path="/level/1" element={<ProtectedRoute><Level1 /></ProtectedRoute>} />
+            <Route path="/level/2" element={<ProtectedRoute><Level2 /></ProtectedRoute>} />
+            <Route path="/level/3" element={<ProtectedRoute><Level3 /></ProtectedRoute>} />
+            <Route path="/level/4" element={<ProtectedRoute><Level4 /></ProtectedRoute>} />
+            <Route path="/level/5" element={<ProtectedRoute><Level5 /></ProtectedRoute>} />
+            <Route path="/epilogue" element={<ProtectedRoute><Epilogue /></ProtectedRoute>} />
+            <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           {/* Vivek + IP Meter only show during game */}

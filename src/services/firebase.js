@@ -83,6 +83,25 @@ export const saveGameProgress = async (uid, data) => {
 };
 
 /**
+ * Save final certificate data
+ */
+export const saveCertificateData = async (uid, data) => {
+  if (!uid) return;
+  const userRef = doc(db, "users", uid);
+  try {
+    await updateDoc(userRef, {
+      "certificate.issued": true,
+      "certificate.score": data.ip,
+      "certificate.profile": data.profile,
+      "certificate.date": new Date(),
+      lastUpdated: new Date()
+    });
+  } catch (error) {
+    console.error("Save Certificate Error:", error);
+  }
+};
+
+/**
  * Load game progress from Firestore
  */
 export const loadGameProgress = async (uid) => {

@@ -12,8 +12,17 @@ const LEVELS_PREVIEW = [
 ];
 
 export default function Landing() {
-  const { t } = useGame();
+  const { t, userId } = useGame();
   const navigate = useNavigate();
+
+  const handleStartClick = (e) => {
+    if (!userId) {
+      e.preventDefault();
+      // Redirect to settings for login
+      alert("Please login via the Settings page before starting your first vote!");
+      navigate("/settings");
+    }
+  };
 
 
   return (
@@ -83,7 +92,7 @@ export default function Landing() {
             display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap",
             animation: "float-up 0.6s ease 0.3s both"
           }}>
-            <Link to="/create" className="btn btn-primary btn-large" id="hero-start-btn">
+            <Link to="/create" className="btn btn-primary btn-large" id="hero-start-btn" onClick={handleStartClick}>
               ▶ Start the Game
             </Link>
             <Link to="/learn" className="btn btn-secondary btn-large" id="hero-learn-btn">

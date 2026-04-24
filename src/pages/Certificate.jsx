@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../context/GameContext";
 import { VOTER_PROFILES } from "../data/gameData";
+import { saveCertificateData } from "../services/firebase";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -17,7 +18,13 @@ export default function Certificate() {
 
   useEffect(() => {
     if (!playerName) navigate("/");
-  }, [playerName, navigate]);
+    
+    // Save the certificate achievement to Firebase
+    const { userId } = JSON.parse(localStorage.getItem("tfv_state") || "{}");
+    if (userId) {
+      saveCertificateData(userId, { ip, profile: badge.label });
+    }
+  }, [playerName, navigate, ip, badge.label]);
 
   const handleDownload = async () => {
     if (!certRef.current) return;
