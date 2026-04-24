@@ -226,7 +226,7 @@ const ENCOUNTERS = [
 ];
 
 export default function Level1() {
-  const { playerName, language, awardIPEvent, addIP, setFlag, flags, goToLevel } = useGame();
+  const { playerName, playerGender, language, awardIPEvent, addIP, setFlag, flags, goToLevel } = useGame();
   const navigate = useNavigate();
   const [phase, setPhase] = useState("walk"); // walk → bribe → transport → pressure → complete
   const [encounterIndex, setEncounterIndex] = useState(0);
