@@ -1180,3 +1180,18 @@ p { color: var(--text-secondary); }
   .sidebar-nav-item.active { border-bottom-color: #4F46E5; border-left: none; }
   .dashboard-content { padding: 16px; }
 }
+
+/* Vivek Widget & Button Mobile Adjustments */
+@media (max-width: 480px) {
+  .vivek-chat-panel { 
+    width: calc(100vw - 32px) !important; 
+    right: 16px !important; 
+    bottom: 80px !important; 
+  }
+  .btn { 
+    white-space: normal; 
+    height: auto; 
+    text-align: center; 
+    justify-content: center; 
+  }
+}

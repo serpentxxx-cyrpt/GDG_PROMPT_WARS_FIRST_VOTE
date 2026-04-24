@@ -9,7 +9,7 @@ const GENDERS = [
 ];
 
 export default function CharacterCreate() {
-  const { setPlayer, startGame, language, t } = useGame();
+  const { setPlayer, startGame, language, t, userId, constituency } = useGame();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [selectedGender, setSelectedGender] = useState(null);
@@ -135,13 +135,13 @@ export default function CharacterCreate() {
               <span style={{ fontSize: "1.5rem" }}>{GENDERS.find(g => g.id === selectedGender)?.emoji}</span>
               <div>
                 <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{name.trim()}</div>
-                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Age 18 · First-time voter · South Kolkata</div>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Age 18 · First-time voter · {constituency || "South Kolkata"}</div>
               </div>
               <div style={{
                 marginLeft: "auto", padding: "4px 12px", borderRadius: "999px",
                 background: "rgba(255,153,51,0.2)", color: "var(--color-saffron)",
                 fontSize: "0.75rem", fontWeight: 700
-              }}>VOTER #247</div>
+              }}>VOTER #{userId ? userId.substring(0, 6).toUpperCase() : Math.floor(Math.random() * 9000 + 1000)}</div>
             </div>
           )}
 

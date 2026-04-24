@@ -7,7 +7,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
 export default function Certificate() {
-  const { playerName, playerGender, ip, voterProfile, resetGame } = useGame();
+  const { playerName, playerGender, ip, voterProfile, resetGame, userId } = useGame();
   const navigate = useNavigate();
   const certRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
@@ -107,6 +107,9 @@ export default function Certificate() {
 
         <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "8px" }}>This certifies that</div>
         <div style={{ fontSize: "2.2rem", fontWeight: 900, marginBottom: "4px" }}>{emoji} {playerName}</div>
+        <div style={{ fontSize: "0.85rem", color: "var(--color-saffron)", fontWeight: 700, letterSpacing: "2px", marginBottom: "8px" }}>
+          VOTER ID: {userId ? userId.substring(0, 6).toUpperCase() : Math.floor(Math.random() * 9000 + 1000)}
+        </div>
         <div style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "24px" }}>
           has completed the Indian Voter Simulation
         </div>

@@ -12,6 +12,7 @@ const INITIAL_STATE = {
   playerGender: null, // "male" | "female" | "other"
   language: "en",
   userId: null,
+  constituency: "South Kolkata",
 
   // Game progress
   currentLevel: -1, // -1 = landing, 0 = character create, prologue, then 0-5
@@ -65,6 +66,9 @@ const gameReducer = (state, action) => {
     }
     case "SET_USER_ID": {
       return { ...state, userId: action.payload };
+    }
+    case "SET_CONSTITUENCY": {
+      return { ...state, constituency: action.payload };
     }
 
     // Game flow
@@ -194,6 +198,10 @@ export const GameProvider = ({ children }) => {
     dispatch({ type: "SET_USER_ID", payload: uid });
   }, []);
 
+  const setConstituency = useCallback((c) => {
+    dispatch({ type: "SET_CONSTITUENCY", payload: c });
+  }, []);
+
   const startGame = useCallback(() => {
     dispatch({ type: "START_GAME" });
   }, []);
@@ -265,6 +273,7 @@ export const GameProvider = ({ children }) => {
     resetFromDisqualification,
     completeGame,
     resetGame,
+    setConstituency,
     setUserId,
     t,
     voterProfile: getVoterProfile(state.ip),

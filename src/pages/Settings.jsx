@@ -89,7 +89,7 @@ function Card({ icon, title, children }) {
 
 // ── Main Component ───────────────────────────────────────────
 export default function Settings() {
-  const { language, setLanguage, userId, setUserId } = useGame();
+  const { language, setLanguage, userId, setUserId, constituency, setConstituency } = useGame();
   const navigate = useNavigate();
   const location = useLocation();
   const [active, setActive] = useState(location.state?.activeTab || "language");
@@ -251,6 +251,24 @@ export default function Settings() {
 
     gameplay: (
       <Card icon="🎮" title="Gameplay">
+        {/* Constituency Selection */}
+        <div style={{ padding: "12px 0", borderBottom: "1px solid #F1F5F9", marginBottom: "12px" }}>
+          <div className="dash-setting-label" style={{ marginBottom: "4px" }}>Constituency (Region)</div>
+          <div className="dash-setting-desc" style={{ marginBottom: "12px" }}>Choose your electoral region. The story will adapt to your location!</div>
+          <select 
+            value={constituency}
+            onChange={(e) => setConstituency(e.target.value)}
+            className="input"
+            style={{ width: "100%", padding: "10px", background: "var(--bg-glass-light)", color: "var(--text-primary)" }}
+          >
+            <option value="South Kolkata">South Kolkata (Urban)</option>
+            <option value="North Kolkata">North Kolkata (Heritage)</option>
+            <option value="Darjeeling">Darjeeling (Hills)</option>
+            <option value="Howrah">Howrah (Industrial)</option>
+            <option value="Sundarbans">Sundarbans (Rural)</option>
+          </select>
+        </div>
+
         <SettingRow label="Show AI Hints" desc="Gemini hints inline at Level 0">
           <DashToggle id="toggle-hints" checked={showHints} onChange={v => handleToggle("tfv_hints", setShowHints, v)} />
         </SettingRow>

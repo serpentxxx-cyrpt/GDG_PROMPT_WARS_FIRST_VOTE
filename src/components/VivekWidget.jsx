@@ -37,7 +37,7 @@ const THINKING = {
 };
 
 export default function VivekWidget() {
-  const { playerName, language, ip, isGameStarted, t } = useGame();
+  const { playerName, language, ip, isGameStarted, t, constituency } = useGame();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -90,6 +90,7 @@ export default function VivekWidget() {
           ipScore: ip,
           userMessage: trimmed,
           gameContext: `Player is at: ${location.pathname}. Language: ${language}. Respond ONLY in ${language === "hi" ? "Hindi (Hinglish)" : language === "bn" ? "Bengali (বাংলা)" : "English"}.`,
+          constituency,
         });
       } else {
         // Fallback responses in correct language
@@ -136,8 +137,8 @@ export default function VivekWidget() {
       const msg = { id: Date.now(), from: "vivek", text };
       setMessages(prev => [...prev, msg]);
 
-      // Auto-open for 6 seconds to show message
-      setIsOpen(true);
+      // Remove auto-open to prevent intruding on gameplay
+      // setIsOpen(true);
       setTimeout(() => setOrbState("normal"), 4000);
 
       // Speak in selected language

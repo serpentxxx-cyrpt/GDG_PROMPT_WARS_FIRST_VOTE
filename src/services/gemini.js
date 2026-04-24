@@ -78,7 +78,7 @@ const getFallbackResponse = (context, language = "en") => {
 // ============================================================
 // MAIN VIVEK CHAT FUNCTION
 // ============================================================
-export const askVivek = async ({ playerName, level, language, ipScore, userMessage, gameContext }) => {
+export const askVivek = async ({ playerName, level, language, ipScore, userMessage, gameContext, constituency }) => {
   const langMap = { en: "English", hi: "Hindi (natural conversational Hinglish)", bn: "Bengali (বাংলা)" };
   const langName = langMap[language] || "English";
 
@@ -87,6 +87,7 @@ export const askVivek = async ({ playerName, level, language, ipScore, userMessa
 Player Details:
 - Name: ${playerName || "the player"}
 - Current Level: ${level || "Unknown"}
+- Constituency: ${constituency || "South Kolkata"}
 - Integrity Points: ${ipScore ?? 50}/210
 
 Rules: Respond in ${langName}. Max 3 sentences. Cite laws (IPC 171B=bribery, 171C=transport, RPA 1951, Article 326) when relevant. NEVER say who to vote for. Be warm and educational.
