@@ -120,6 +120,7 @@ export default function Settings() {
   const [npcVoice,      setNpcVoice]      = useState(() => JSON.parse(localStorage.getItem("tfv_npc_voice") ?? "true"));
   const [voiceSpeed,    setVoiceSpeed]    = useState(() => Number(localStorage.getItem("tfv_voice_speed") ?? "0.75"));
   const [voiceVolume,   setVoiceVolume]   = useState(() => Number(localStorage.getItem("tfv_voice_volume") ?? "1.0"));
+  const [voiceGender,   setVoiceGender]   = useState(() => localStorage.getItem("tfv_voice_gender") || "female");
   const [musicMuted,    setMusicMutedState] = useState(() => localStorage.getItem("tfv_music_muted") === "true");
   const [musicVol,      setMusicVol]      = useState(() => Number(localStorage.getItem("tfv_music_vol") ?? "0.7"));
 
@@ -208,6 +209,29 @@ export default function Settings() {
         <SettingRow label="NPC Dialogue Voice" desc="Characters speak their lines aloud">
           <DashToggle id="toggle-npc-voice" checked={npcVoice} onChange={v => handleToggle("tfv_npc_voice", setNpcVoice, v)} />
         </SettingRow>
+
+        {/* Voice Gender Toggle */}
+        <div style={{ padding: "12px 0", borderBottom: "1px solid #F1F5F9" }}>
+          <div className="dash-setting-label" style={{ marginBottom: "4px" }}>Voice Gender</div>
+          <div className="dash-setting-desc" style={{ marginBottom: "12px" }}>Prefer Male or Female narrator voice (OS dependent)</div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            {[
+              { id: "female", emoji: "👩", label: "Female Voice" },
+              { id: "male", emoji: "👨", label: "Male Voice" },
+            ].map(opt => (
+              <button key={opt.id} onClick={() => handleToggle("tfv_voice_gender", setVoiceGender, opt.id)}
+                style={{
+                  flex: 1, padding: "10px", borderRadius: "8px", cursor: "pointer",
+                  border: `2px solid ${voiceGender === opt.id ? "#4F46E5" : "#E2E8F0"}`,
+                  background: voiceGender === opt.id ? "#EEF2FF" : "transparent",
+                  fontWeight: 600, color: "#1E293B", transition: "all 0.15s ease"
+                }}>
+                <span style={{ marginRight: "8px" }}>{opt.emoji}</span> {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <DashSlider id="slider-speed" min={0.5} max={1.5} step={0.05} value={voiceSpeed} onChange={setVoiceSpeed}
           label="Narration Speed" desc="Default: 0.75× (slower for clarity)" format={v => `${v.toFixed(2)}×`} />
         <DashSlider id="slider-volume" min={0} max={1} step={0.1} value={voiceVolume} onChange={setVoiceVolume}

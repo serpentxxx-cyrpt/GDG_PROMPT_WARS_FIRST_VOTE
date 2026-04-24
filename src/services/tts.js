@@ -34,10 +34,25 @@ const processQueue = () => {
 
     const setVoiceAndSpeak = () => {
       const voices = window.speechSynthesis.getVoices();
-      let voice = voices.find(v => v.lang === langCode)
-        || voices.find(v => v.lang.startsWith(langCode.split("-")[0]))
-        || voices.find(v => v.lang.startsWith("en"));
-      if (voice) utterance.voice = voice;
+      const genderPref = localStorage.getItem("tfv_voice_gender") || "female";
+
+      // 1. Filter by language
+      let langVoices = voices.filter(v => v.lang === langCode);
+      if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith(langCode.split("-")[0]));
+      if (langVoices.length === 0) langVoices = voices.filter(v => v.lang.startsWith("en"));
+
+      // 2. Try to match preferred gender based on known voice names/metadata
+      let selectedVoice = null;
+      if (genderPref === "male") {
+        selectedVoice = langVoices.find(v => /male|david|ravi|mark|george/i.test(v.name) && !/female/i.test(v.name));
+      } else {
+        selectedVoice = langVoices.find(v => /female|zira|samantha|heera|hazel/i.test(v.name));
+      }
+
+      // 3. Fallback if preferred gender isn't found in this language
+      if (!selectedVoice) selectedVoice = langVoices[0] || voices[0];
+
+      if (selectedVoice) utterance.voice = selectedVoice;
 
       utterance.onstart = () => { isSpeaking = true; };
       utterance.onend = () => {
