@@ -14,6 +14,10 @@ let isSpeaking = false;
 let speakQueue = [];         // queue of { text, options, resolve }
 let currentUtterance = null;
 
+// Deduplication state
+let lastSpokenText = "";
+let lastSpokenTime = 0;
+
 // ─── Internal queue processor ───────────────────────────────
 const processQueue = () => {
   if (isSpeaking || speakQueue.length === 0) return;
@@ -82,6 +86,19 @@ export const speak = (text, options = {}) => {
     return Promise.resolve();
   }
 
+  // Deduplication: prevent the exact same text from being enqueued repeatedly
+  const now = Date.now();
+  if (text === lastSpokenText && (now - lastSpokenTime < 2500)) {
+    return Promise.resolve(); // Ignore rapid identical requests
+  }
+  // Check if it's already pending in the queue
+  if (speakQueue.some(item => item.text === text)) {
+    return Promise.resolve(); 
+  }
+
+  lastSpokenText = text;
+  lastSpokenTime = now;
+
   return new Promise(resolve => {
     speakQueue.push({ text, options, resolve });
     processQueue();
@@ -96,6 +113,16 @@ export const speakNow = (text, options = {}) => {
   if (typeof window === "undefined" || !("speechSynthesis" in window) || !text?.trim()) {
     return Promise.resolve();
   }
+
+  // Deduplication for instant speech
+  const now = Date.now();
+  if (text === lastSpokenText && (now - lastSpokenTime < 1500)) {
+    return Promise.resolve(); 
+  }
+
+  lastSpokenText = text;
+  lastSpokenTime = now;
+
   // Clear queue and cancel current speech
   speakQueue = [];
   window.speechSynthesis.cancel();
