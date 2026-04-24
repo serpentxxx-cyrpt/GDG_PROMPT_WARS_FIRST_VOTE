@@ -286,7 +286,7 @@ export default function Level1() {
     return () => clearTimeout(aiTimerRef.current);
   }, [encounterIndex, showDialogue]);
 
-  const handleDecline = () => {
+  const handleDecline = () => { stopSpeaking();
     clearTimeout(aiTimerRef.current);
     stopSpeaking();
     const beforeAI = !aiTriggered;
@@ -318,7 +318,7 @@ export default function Level1() {
     });
   };
 
-  const handleAccept = () => {
+  const handleAccept = () => { stopSpeaking();
     clearTimeout(aiTimerRef.current);
     stopSpeaking();
     setResult("accept");

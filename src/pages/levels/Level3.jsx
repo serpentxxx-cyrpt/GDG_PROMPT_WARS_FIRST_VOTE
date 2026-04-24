@@ -147,7 +147,7 @@ export default function Level3() {
   }, []);
 
   // Officer 0 handler
-  const handleIDVerification = () => {
+  const handleIDVerification = () => { stopSpeaking();
     const rollCall = `${playerName}! Serial Number 247! Please confirm your presence.`;
     speak(rollCall, { language, ...NPC_VOICES.OFFICER_1 });
     awardIPEvent("CORRECT_NAME_CONFIRM");
@@ -160,7 +160,7 @@ export default function Level3() {
   };
 
   // Apply ink animation
-  const handleApplyInk = () => {
+  const handleApplyInk = () => { stopSpeaking();
     setInkPhase(true);
     speak("Applying indelible ink to your left forefinger. This ink will last 14 to 21 days and cannot be removed.", { language, ...NPC_VOICES.OFFICER_2 });
     if (window.vivekSay) window.vivekSay("The indelible ink is applied to your LEFT forefinger. It's manufactured by Mysore Paints and Varnish Ltd. No solvent can remove it. This prevents double voting across all constituencies!");
@@ -208,7 +208,7 @@ export default function Level3() {
     }
   };
 
-  const handleSignComplete = () => {
+  const handleSignComplete = () => { stopSpeaking();
     awardIPEvent("SIGN_FORM_17A");
     updateInventory({ inkApplied: true, form17aSigned: true });
     speak("Form 17A signed successfully. The register is now updated. Please proceed to Officer 3.", { language });
@@ -223,7 +223,7 @@ export default function Level3() {
     }, 2000);
   };
 
-  const handleReportFraud = () => {
+  const handleReportFraud = () => { stopSpeaking();
     clearTimeout(fraudTimer.current);
     awardIPEvent("REPORT_FAKE_INK");
     setFraudReported(true);
@@ -236,14 +236,14 @@ export default function Level3() {
     }, 2000);
   };
 
-  const handleIgnoreFraud = () => {
+  const handleIgnoreFraud = () => { stopSpeaking();
     addIP(-10, "IGNORE_FAKE_INK");
     setFraudShown(false);
     if (window.vivekSay) window.vivekSay("You should have reported that! That person was attempting to impersonate you at the booth. Always report suspicious activity to the Presiding Officer.", "alert");
     setPhase("activation");
   };
 
-  const handleActivation = () => {
+  const handleActivation = () => { stopSpeaking();
     speak("Ballot button pressed. The Balloting Unit is now active for exactly one vote. Please proceed to the voting compartment.", { language, ...NPC_VOICES.OFFICER_3 });
     if (window.vivekSay) window.vivekSay("The Control Unit is now activated for your single vote. Once you press a button on the EVM, the machine locks until the next voter is processed.");
     setTimeout(() => {

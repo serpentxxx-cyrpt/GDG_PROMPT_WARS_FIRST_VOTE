@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak, NPC_VOICES } from "../../services/tts";
+import { speak, stopSpeaking, NPC_VOICES } from "../../services/tts";
 import { DOCUMENTS } from "../../data/gameData";
 
 export default function Level2() {
@@ -23,7 +23,7 @@ export default function Level2() {
 
   const officerDialogue = "Please present a valid photo identity document as per Election Commission of India guidelines.";
 
-  const handleDocSelect = (doc) => {
+  const handleDocSelect = (doc) => { stopSpeaking();
     if (isComplete) return;
     setSelectedDoc(doc.id);
 
@@ -59,7 +59,7 @@ export default function Level2() {
     }
   };
 
-  const handleProceed = () => {
+  const handleProceed = () => { stopSpeaking();
     navigate("/level/3");
   };
 

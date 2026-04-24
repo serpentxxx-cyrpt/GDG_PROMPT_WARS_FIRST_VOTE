@@ -87,7 +87,7 @@ export default function Level0() {
     return age >= 18;
   };
 
-  const handleDOBSubmit = () => {
+  const handleDOBSubmit = () => { stopSpeaking();
     if (!formData.dob) {
       setError("Please enter your date of birth.");
       speak("Please enter your date of birth to continue.", { language });
@@ -109,7 +109,7 @@ export default function Level0() {
     setStep(2);
   };
 
-  const handleConstituencySubmit = () => {
+  const handleConstituencySubmit = () => { stopSpeaking();
     if (!formData.constituency) {
       setError("Please select your constituency.");
       speak("Please select your constituency from the options shown.", { language });
@@ -130,19 +130,19 @@ export default function Level0() {
     }
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = (e) => { stopSpeaking();
     if (e.target.files?.[0]) {
       speak("Photo uploaded successfully! Now review your application.", { language });
       setStep(4);
     }
   };
 
-  const handleSkipPhoto = () => {
+  const handleSkipPhoto = () => { stopSpeaking();
     speak("Photo skipped for simulation. Proceeding to review.", { language });
     setStep(4);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = () => { stopSpeaking();
     // Confirmation after clicking Submit
     speak("Application submitted successfully! Your Voter ID will be processed within 7 days.", { language });
     setStep(5);
@@ -152,7 +152,7 @@ export default function Level0() {
     }, 3000);
   };
 
-  const handleCollectCard = () => {
+  const handleCollectCard = () => { stopSpeaking();
     updateInventory({ epicCard: true });
     speak("Voter ID collected! Let's head to the polling station.", { language });
     goToLevel(1);

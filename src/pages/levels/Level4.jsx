@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak, NPC_VOICES } from "../../services/tts";
+import { speak, stopSpeaking, NPC_VOICES } from "../../services/tts";
 import { CANDIDATES } from "../../data/gameData";
 import { Canvas, useFrame } from "@react-three/fiber";
 
@@ -299,7 +299,7 @@ export default function Level4() {
     return () => clearInterval(vvpatIntervalRef.current);
   }, [vvpatVisible, vvpatWatched]);
 
-  const handleVote = (candidate) => {
+  const handleVote = (candidate) => { stopSpeaking();
     setSelectedCandidate(candidate);
     setPhase("pressed");
     speak(`Button pressed for ${candidate.name}. ${candidate.party}.`, { language });
@@ -313,7 +313,7 @@ export default function Level4() {
     }, 1000);
   };
 
-  const handleDismissVvpat = () => {
+  const handleDismissVvpat = () => { stopSpeaking();
     if (vvpatWatched) return;
     clearInterval(vvpatIntervalRef.current);
     addIP(-10, "DISMISS_VVPAT_EARLY");
@@ -322,7 +322,7 @@ export default function Level4() {
     if (window.vivekSay) window.vivekSay("You dismissed the VVPAT before the 7 seconds were up! Always verify the full slip — it's your only proof that your vote was recorded correctly. -10 IP", "alert");
   };
 
-  const handleReportMismatch = () => {
+  const handleReportMismatch = () => { stopSpeaking();
     awardIPEvent("REPORT_VVPAT_MISMATCH");
     setFlag("reportedVVPATMismatch", true);
     setMismatchHandled(true);
@@ -331,14 +331,14 @@ export default function Level4() {
     setTimeout(() => setPhase("complete"), 2500);
   };
 
-  const handleIgnoreMismatch = () => {
+  const handleIgnoreMismatch = () => { stopSpeaking();
     addIP(-15, "IGNORE_VVPAT_MISMATCH");
     setMismatchHandled(true);
     if (window.vivekSay) window.vivekSay("You ignored the VVPAT mismatch! That could mean your vote went to the wrong candidate. Always report any discrepancy to the Presiding Officer immediately. -15 IP", "alert");
     setTimeout(() => setPhase("complete"), 2000);
   };
 
-  const handleInkEasterEgg = () => {
+  const handleInkEasterEgg = () => { stopSpeaking();
     if (!inkEasterEgg) {
       setInkEasterEgg(true);
       addIP(5, "CHECK_INK_EASTER_EGG");
@@ -346,7 +346,7 @@ export default function Level4() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = () => { stopSpeaking();
     updateInventory({ hasVoted: true });
     navigate("/level/5");
   };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak } from "../../services/tts";
+import { speak, stopSpeaking } from "../../services/tts";
 import { CANDIDATES } from "../../data/gameData";
 
 const generateResults = () => {
@@ -70,7 +70,7 @@ export default function Level5() {
   const winner = results[0];
   const margin = results[0].votes - results[1].votes;
 
-  const handleProceedToEpilogue = () => {
+  const handleProceedToEpilogue = () => { stopSpeaking();
     completeGame();
     navigate("/epilogue");
   };
