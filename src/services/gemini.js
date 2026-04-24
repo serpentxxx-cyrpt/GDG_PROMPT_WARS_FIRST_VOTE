@@ -12,6 +12,10 @@ let model = null;
 
 const MODEL_PRIORITY = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
 
+// Security: Rate Limiting
+let lastCallTime = 0;
+const RATE_LIMIT_MS = 2500; // 2.5s cooldown between AI hits
+
 const initGemini = () => {
   if (!API_KEY || API_KEY === "YOUR_GEMINI_API_KEY_HERE" || !API_KEY.trim()) {
     console.warn("⚠️ Gemini API key not configured.");
@@ -93,6 +97,14 @@ Player: "${userMessage}"`;
   if (!isGeminiAvailable) {
     return getFallbackResponse(userMessage, language);
   }
+
+  // Rate limiting safety check
+  const now = Date.now();
+  if (now - lastCallTime < RATE_LIMIT_MS) {
+    console.warn("Vivek is thinking... throttling request to preserve API quota.");
+    return getFallbackResponse(userMessage, language);
+  }
+  lastCallTime = now;
 
   // Try each model in priority order
   for (let i = 0; i < MODEL_PRIORITY.length; i++) {

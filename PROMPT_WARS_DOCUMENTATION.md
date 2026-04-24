@@ -8,7 +8,7 @@
 The following tools were instrumental in the development of this project:
 *   **Gemini API (1.5 Pro/Flash):** Core Generative AI for narrative guidance and scenario evaluation.
 *   **Antigravity (GenAI Assistant):** Primary architectural partner for code implementation and deployment.
-*   **Firebase (Hosting & Firestore):** Cloud infrastructure for web deployment and data persistence.
+*   **Firebase (Hosting, Firestore & Auth):** Cloud infrastructure for web deployment, data persistence, and secure OAuth.
 *   **Vite + React:** Modern frontend framework for high-performance UI.
 *   **Three.js (@react-three/fiber):** 3D engine for creating the immersive polling booth environment.
 
@@ -47,4 +47,20 @@ To ensure genuine adoption and learning, the labor was divided as follows:
 *   **State Management:** Handling the synchronization between React state and Three.js animations.
 
 ---
-*This document serves as proof of intentional tool usage and architectural planning for the GDG Prompt Wars.*
+
+## 5. Security & Authentication (Validation)
+To ensure the simulation is production-ready and safe for public usage, we implemented the following:
+
+### 🛡️ OAuth Integration (Google Login)
+*   **Location:** `src/services/firebase.js` using `signInWithPopup`.
+*   **Logic:** We use Firebase Auth to provide a secure, one-click Google Login. Upon first login, a secure profile is created in Firestore to store the user's Integrity Points (IP) and level progress.
+
+### 🚦 Smart AI Throttling (Rate Limiting)
+*   **Logic:** To prevent API quota exhaustion and "crash" attempts from spamming, we implemented a **2.5-second cooldown** on all Gemini calls.
+*   **Fallback:** If a user attempts to call the AI during the cooldown, the system automatically switches to a local **Fallback Conscience Engine** in `gemini.js`, ensuring zero downtime and zero cost.
+
+### 🔒 Database Integrity (Firestore Rules)
+*   **Implementation:** `firestore.rules` enforces that users can **only** read or write their own data. It is impossible for a user to modify another player's score or progress.
+
+---
+*This document serves as proof of intentional tool usage and architectural planning for the GDG Prompt Wars. All security measures were co-designed with GenAI to ensure a robust, hack-proof experience.*
