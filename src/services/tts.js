@@ -1,6 +1,7 @@
 // ============================================================
 // TEXT-TO-SPEECH SERVICE — NPC Voices
 // Uses Web Speech API (browser built-in, free, no API needed)
+// Queue-based: each speak() waits for the previous to finish
 // ============================================================
 
 const LANG_CODES = {
@@ -9,62 +10,56 @@ const LANG_CODES = {
   bn: "bn-IN",  // Bengali
 };
 
-let currentUtterance = null;
 let isSpeaking = false;
+let speakQueue = [];         // queue of { text, options, resolve }
+let currentUtterance = null;
 
-// Check if browser supports speech synthesis
-export const isTTSSupported = () => typeof window !== "undefined" && "speechSynthesis" in window;
+// ─── Internal queue processor ───────────────────────────────
+const processQueue = () => {
+  if (isSpeaking || speakQueue.length === 0) return;
 
-// Get best available voice for language
-const getVoice = (langCode) => {
-  if (!isTTSSupported()) return null;
-  const voices = window.speechSynthesis.getVoices();
-  // Try exact match first
-  let voice = voices.find(v => v.lang === langCode);
-  // Fallback to language prefix match
-  if (!voice) voice = voices.find(v => v.lang.startsWith(langCode.split("-")[0]));
-  // Final fallback to any English
-  if (!voice) voice = voices.find(v => v.lang.startsWith("en"));
-  return voice;
-};
-
-// ============================================================
-// SPEAK — Main TTS function
-// ============================================================
-export const speak = (text, { language = "en", rate = 0.9, pitch = 1.0, onEnd } = {}) => {
-  if (!isTTSSupported() || !text) return;
+  const { text, options, resolve } = speakQueue.shift();
+  const { language = "en", rate = 0.85, pitch = 1.0, onEnd } = options;
 
   try {
-    // Stop any current speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
     const langCode = LANG_CODES[language] || "en-IN";
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = langCode;
     utterance.rate = rate;
     utterance.pitch = pitch;
 
-    // Set voice with delay to ensure voices are loaded
     const setVoiceAndSpeak = () => {
-      const voice = getVoice(langCode);
+      const voices = window.speechSynthesis.getVoices();
+      let voice = voices.find(v => v.lang === langCode)
+        || voices.find(v => v.lang.startsWith(langCode.split("-")[0]))
+        || voices.find(v => v.lang.startsWith("en"));
       if (voice) utterance.voice = voice;
 
       utterance.onstart = () => { isSpeaking = true; };
       utterance.onend = () => {
         isSpeaking = false;
+        currentUtterance = null;
         if (onEnd) onEnd();
+        if (resolve) resolve();
+        // Process next item after a small breath gap
+        setTimeout(processQueue, 300);
       };
       utterance.onerror = (err) => {
+        // Ignore "interrupted" errors — they're expected on cancel()
+        if (err.error !== "interrupted" && err.error !== "canceled") {
+          console.warn("TTS error:", err.error);
+        }
         isSpeaking = false;
-        console.warn("TTS error:", err.error);
+        currentUtterance = null;
         if (onEnd) onEnd();
+        if (resolve) resolve();
+        setTimeout(processQueue, 300);
       };
 
       currentUtterance = utterance;
       window.speechSynthesis.speak(utterance);
     };
 
-    // Voices may not be loaded yet on first call
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
     } else {
@@ -72,32 +67,78 @@ export const speak = (text, { language = "en", rate = 0.9, pitch = 1.0, onEnd } 
     }
   } catch (err) {
     console.error("TTS speak error:", err);
+    isSpeaking = false;
+    if (resolve) resolve();
+    setTimeout(processQueue, 300);
   }
 };
 
+// ============================================================
+// SPEAK — Main TTS function (queued, non-overlapping)
+// Returns a Promise that resolves when this utterance finishes
+// ============================================================
+export const speak = (text, options = {}) => {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text?.trim()) {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    speakQueue.push({ text, options, resolve });
+    processQueue();
+  });
+};
+
+// ============================================================
+// SPEAK INTERRUPT — Cancels everything, speaks immediately
+// Use only for urgent/important interruptions
+// ============================================================
+export const speakNow = (text, options = {}) => {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || !text?.trim()) {
+    return Promise.resolve();
+  }
+  // Clear queue and cancel current speech
+  speakQueue = [];
+  window.speechSynthesis.cancel();
+  isSpeaking = false;
+  currentUtterance = null;
+
+  return new Promise(resolve => {
+    speakQueue.push({ text, options, resolve });
+    // Small delay to let browser process the cancel()
+    setTimeout(processQueue, 120);
+  });
+};
+
+// ============================================================
+// STOP — Cancel all speech and clear queue
+// ============================================================
 export const stopSpeaking = () => {
-  if (isTTSSupported()) {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
     try {
+      speakQueue = [];
       window.speechSynthesis.cancel();
       isSpeaking = false;
+      currentUtterance = null;
     } catch (err) {
       console.error("TTS stop error:", err);
     }
   }
 };
 
+export const isTTSSupported = () =>
+  typeof window !== "undefined" && "speechSynthesis" in window;
+
 export const getIsSpeaking = () => isSpeaking;
 
 // ============================================================
 // NPC VOICE PRESETS
-// Different voices for different NPC types
 // ============================================================
 export const NPC_VOICES = {
-  VIVEK: { pitch: 1.1, rate: 0.95 },           // Wise, calm
-  BRIBE_NPC: { pitch: 0.8, rate: 1.1 },        // Gruff, hurried
-  OFFICER_1: { pitch: 0.9, rate: 0.85 },       // Official, formal
-  OFFICER_2: { pitch: 1.0, rate: 0.9 },        // Neutral
-  OFFICER_3: { pitch: 0.95, rate: 0.9 },       // Official
-  NEIGHBOR: { pitch: 1.2, rate: 1.05 },        // Friendly, casual
-  NEWS_ANCHOR: { pitch: 1.05, rate: 1.0 },     // Professional
+  VIVEK:      { pitch: 1.1,  rate: 0.85 },  // Wise, calm, slightly slow
+  BRIBE_NPC:  { pitch: 0.8,  rate: 0.95 },  // Gruff, hurried
+  OFFICER_1:  { pitch: 0.9,  rate: 0.82 },  // Official, formal
+  OFFICER_2:  { pitch: 1.0,  rate: 0.85 },  // Neutral
+  OFFICER_3:  { pitch: 0.95, rate: 0.85 },  // Official
+  NEIGHBOR:   { pitch: 1.2,  rate: 0.90 },  // Friendly
+  NEWS_ANCHOR:{ pitch: 1.05, rate: 0.88 },  // Professional
 };

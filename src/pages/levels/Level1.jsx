@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak, NPC_VOICES } from "../../services/tts";
+import { speak, speakNow, stopSpeaking, NPC_VOICES } from "../../services/tts";
 import { NPC_DIALOGUE } from "../../data/gameData";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -241,34 +241,54 @@ export default function Level1() {
   useEffect(() => {
     if (!playerName) { navigate("/create"); return; }
     goToLevel(1);
+    stopSpeaking();
     const intro = { en: `${playerName}, you're walking toward the polling station. Stay alert!`, hi: `${playerName}, आप मतदान केंद्र की ओर जा रहे हैं। सतर्क रहें!`, bn: `${playerName}, আপনি ভোটকেন্দ্রের দিকে যাচ্ছেন। সতর্ক থাকুন!` };
-    speak(intro[language] || intro.en, { language });
-    setTimeout(() => {
+    // Wait for intro to finish, then show first encounter
+    speak(intro[language] || intro.en, { language }).then(() => {
       setPhase("bribe");
       setShowDialogue(true);
-      const alert = { en: "Stay alert! Not everyone on this road has good intentions.", hi: "सतर्क रहें! इस रास्ते पर हर कोई ईमानदार नहीं है।", bn: "সতর্ক থাকুন! এই পথের সবাই সৎ নয়।" };
-      if (window.vivekSay) window.vivekSay(alert[language] || alert.en, "normal");
-    }, 2000);
+      // Speak NPC bribe offer after intro finishes
+      const npcLine = ENCOUNTERS[0].npcKey;
+      const npcText = NPC_DIALOGUE[npcLine]?.[language] || NPC_DIALOGUE[npcLine]?.en || "";
+      if (npcText) speak(npcText, { language, ...NPC_VOICES.BRIBE_NPC });
+    });
   }, []);
 
   const currentEncounter = ENCOUNTERS[encounterIndex];
 
-  // Start AI intervention timer when dialogue appears
+  // Speak NPC line when a NEW encounter appears, then schedule AI warning
   useEffect(() => {
-    if (showDialogue && !showAI && !aiTriggered) {
+    if (!showDialogue || !currentEncounter) return;
+    // Clear any previous timer
+    clearTimeout(aiTimerRef.current);
+
+    // Speak the NPC dialogue for encounters after the first
+    // (first encounter NPC line is spoken in the intro chain above)
+    if (encounterIndex > 0) {
+      const npcText = NPC_DIALOGUE[currentEncounter.npcKey]?.[language]
+        || NPC_DIALOGUE[currentEncounter.npcKey]?.en || "";
+      if (npcText) stopSpeaking();
+      if (npcText) speak(npcText, { language, ...NPC_VOICES.BRIBE_NPC });
+    }
+
+    // AI intervention: fires 4 seconds after dialogue shown
+    if (!showAI && !aiTriggered) {
       aiTimerRef.current = setTimeout(() => {
         setShowAI(true);
         setAITriggered(true);
         const aiText = currentEncounter.ai_intervention[language] || currentEncounter.ai_intervention.en;
+        // Stop NPC, then Vivek speaks
+        stopSpeaking();
         speak(aiText.replace(/[🚨⚠️]/g, ""), { language, ...NPC_VOICES.VIVEK });
         if (window.vivekSay) window.vivekSay(aiText, "alert");
-      }, 3000);
+      }, 4500); // Give NPC line time to finish before Vivek interrupts
     }
     return () => clearTimeout(aiTimerRef.current);
   }, [showDialogue, showAI, aiTriggered, encounterIndex]);
 
   const handleDecline = () => {
     clearTimeout(aiTimerRef.current);
+    stopSpeaking();
     const beforeAI = !aiTriggered;
     setHasDeclinedBeforeAI(beforeAI);
     setResult("decline");
@@ -276,7 +296,7 @@ export default function Level1() {
 
     if (currentEncounter.id === "bribe") {
       if (beforeAI) {
-        addIP(25, "DECLINE_BRIBE_BEFORE_AI"); // 20 + 5 bonus
+        addIP(25, "DECLINE_BRIBE_BEFORE_AI");
         setFlag("declinedBribeBeforeAI", true);
       } else {
         awardIPEvent("DECLINE_BRIBE_AFTER_AI");
@@ -287,53 +307,62 @@ export default function Level1() {
       awardIPEvent("DECLINE_PEER_PRESSURE");
     }
 
-    speak(currentEncounter.decline_message[language] || currentEncounter.decline_message.en, { language, ...NPC_VOICES.VIVEK });
-
-    setTimeout(() => {
+    // Speak result message, then move on after it finishes
+    const msg = currentEncounter.decline_message[language] || currentEncounter.decline_message.en;
+    speak(msg, { language, ...NPC_VOICES.VIVEK }).then(() => {
       setShowResult(false);
       setShowDialogue(false);
       setShowAI(false);
       setAITriggered(false);
       goToNextEncounter();
-    }, 2500);
+    });
   };
 
   const handleAccept = () => {
     clearTimeout(aiTimerRef.current);
+    stopSpeaking();
     setResult("accept");
     setShowResult(true);
 
+    let penaltyMsg = "";
     if (currentEncounter.id === "bribe") {
       addIP(-50, "ACCEPT_BRIBE");
-      speak("You accepted a bribe. This is a criminal offense. The Presiding Officer has been notified.", { language });
+      penaltyMsg = { en: "You accepted a bribe. This is a criminal offense under Section 171B IPC. Integrity Points deducted!", hi: "आपने रिश्वत स्वीकार की। यह IPC धारा 171B के तहत अपराध है। ईमानदारी अंक काटे गए!", bn: "আপনি ঘুষ নিয়েছেন। এটি IPC ধারা 171B-র অধীনে অপরাধ। ইন্টিগ্রিটি পয়েন্ট কাটা হয়েছে!" };
     } else if (currentEncounter.id === "transport") {
       awardIPEvent("ACCEPT_TRANSPORT");
-      if (window.vivekSay) window.vivekSay("Taking the party transport is technically illegal under Section 171C, IPC. But since this was subtle, I'll let it slide this time. Now you know!", "alert");
-      speak("Accepting party transport is illegal under Section 171C. Now you know for next time.", { language });
+      penaltyMsg = { en: "Accepting party transport is illegal under Section 171C. Now you know for next time.", hi: "पार्टी परिवहन लेना धारा 171C के तहत अवैध है।", bn: "দলীয় পরিবহন নেওয়া ধারা 171C অনুসারে বেআইনি।" };
+      if (window.vivekSay) window.vivekSay(penaltyMsg.en, "alert");
     }
 
-    setTimeout(() => {
+    const msgText = (penaltyMsg[language] || penaltyMsg.en || "");
+    // Speak penalty, then move on after it finishes
+    speak(msgText, { language, ...NPC_VOICES.VIVEK }).then(() => {
       setShowResult(false);
       setShowDialogue(false);
       setShowAI(false);
       setAITriggered(false);
       goToNextEncounter();
-    }, 2500);
+    });
   };
 
   const goToNextEncounter = () => {
     if (encounterIndex < ENCOUNTERS.length - 1) {
+      // Short pause then show next encounter
       setTimeout(() => {
         setEncounterIndex(i => i + 1);
         setShowDialogue(true);
         setPhase(ENCOUNTERS[encounterIndex + 1]?.id || "complete");
-      }, 1000);
+      }, 800);
     } else {
       setPhase("complete");
-      setTimeout(() => {
-        speak("You've passed the campaign gauntlet. Now, let's enter the polling station.", { language });
+      const outroText = {
+        en: "Well done! You've passed the campaign gauntlet. Now, let's enter the polling station.",
+        hi: "शाबाश! आपने प्रचार अभियान पार किया। अब मतदान केंद्र में प्रवेश करते हैं।",
+        bn: "চমৎকার! আপনি প্রচার অভিযান পার করেছেন। এখন ভোটকেন্দ্রে প্রবেশ করি।"
+      };
+      speak(outroText[language] || outroText.en, { language }).then(() => {
         navigate("/level/2");
-      }, 2000);
+      });
     }
   };
 
