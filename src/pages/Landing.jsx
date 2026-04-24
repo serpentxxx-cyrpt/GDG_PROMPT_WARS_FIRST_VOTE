@@ -18,9 +18,9 @@ export default function Landing() {
   const handleStartClick = (e) => {
     if (!userId) {
       e.preventDefault();
-      // Redirect to settings for login
+      // Redirect to settings for login, specifically the account tab
       alert("Please login via the Settings page before starting your first vote!");
-      navigate("/settings");
+      navigate("/settings", { state: { activeTab: "account" } });
     }
   };
 
