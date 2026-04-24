@@ -237,6 +237,7 @@ export default function Level1() {
   const [result, setResult] = useState(null); // "accept" | "decline"
   const [showResult, setShowResult] = useState(false);
   const aiTimerRef = useRef(null);
+  const npcSpokenRef = useRef(-1); // tracks which encounter index NPC has spoken for
 
   useEffect(() => {
     if (!playerName) { navigate("/create"); return; }
@@ -256,35 +257,34 @@ export default function Level1() {
 
   const currentEncounter = ENCOUNTERS[encounterIndex];
 
-  // Speak NPC line when a NEW encounter appears, then schedule AI warning
+  // Speak NPC line once per NEW encounter, then schedule AI warning
   useEffect(() => {
     if (!showDialogue || !currentEncounter) return;
-    // Clear any previous timer
     clearTimeout(aiTimerRef.current);
 
-    // Speak the NPC dialogue for encounters after the first
-    // (first encounter NPC line is spoken in the intro chain above)
-    if (encounterIndex > 0) {
-      const npcText = NPC_DIALOGUE[currentEncounter.npcKey]?.[language]
-        || NPC_DIALOGUE[currentEncounter.npcKey]?.en || "";
-      if (npcText) stopSpeaking();
-      if (npcText) speak(npcText, { language, ...NPC_VOICES.BRIBE_NPC });
-    }
+    // Guard: only speak NPC line once per encounter
+    if (npcSpokenRef.current !== encounterIndex) {
+      npcSpokenRef.current = encounterIndex;
+      if (encounterIndex > 0) {
+        // For encounters after the first (first is spoken in intro chain)
+        const npcText = NPC_DIALOGUE[currentEncounter.npcKey]?.[language]
+          || NPC_DIALOGUE[currentEncounter.npcKey]?.en || "";
+        if (npcText) { stopSpeaking(); speak(npcText, { language, ...NPC_VOICES.BRIBE_NPC }); }
+      }
 
-    // AI intervention: fires 4 seconds after dialogue shown
-    if (!showAI && !aiTriggered) {
+      // AI intervention fires 4.5s after dialogue opens
       aiTimerRef.current = setTimeout(() => {
         setShowAI(true);
         setAITriggered(true);
         const aiText = currentEncounter.ai_intervention[language] || currentEncounter.ai_intervention.en;
-        // Stop NPC, then Vivek speaks
         stopSpeaking();
-        speak(aiText.replace(/[🚨⚠️]/g, ""), { language, ...NPC_VOICES.VIVEK });
+        speak(aiText.replace(/[\u{1F6A8}\u26A0\uFE0F]/gu, ""), { language, ...NPC_VOICES.VIVEK });
         if (window.vivekSay) window.vivekSay(aiText, "alert");
-      }, 4500); // Give NPC line time to finish before Vivek interrupts
+      }, 4500);
     }
+
     return () => clearTimeout(aiTimerRef.current);
-  }, [showDialogue, showAI, aiTriggered, encounterIndex]);
+  }, [encounterIndex, showDialogue]);
 
   const handleDecline = () => {
     clearTimeout(aiTimerRef.current);

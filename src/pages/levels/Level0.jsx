@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak } from "../../services/tts";
+import { speak, stopSpeaking } from "../../services/tts";
 import { getLevelHint, isGeminiAvailable } from "../../services/gemini";
 
 const STEPS = [
@@ -29,22 +29,53 @@ export default function Level0() {
   const [constAttempts, setConstAttempts] = useState(0);
   const [hint, setHint] = useState("");
 
+  // Narrate instruction when a new step appears
+  const STEP_NARRATION = {
+    en: [
+      `Welcome ${playerName}! Please fill in your personal details to begin voter registration.`,
+      `Now enter your Date of Birth. You must be at least 18 years old to register as a voter.`,
+      `Select your Assembly Constituency based on your residential address.`,
+      `Upload a recent passport-size photograph for your Voter ID card.`,
+      `Review your application details carefully before submitting.`,
+      `Your application has been submitted! Collecting your EPIC Voter ID card now.`,
+    ],
+    hi: [
+      `${playerName}, कृपया अपना व्यक्तिगत विवरण भरें।`,
+      `अब अपनी जन्म तिथि दर्ज करें। मतदाता बनने के लिए आपकी आयु कम से कम 18 वर्ष होनी चाहिए।`,
+      `अपने पते के अनुसार अपना विधानसभा क्षेत्र चुनें।`,
+      `अपनी मतदाता पहचान पत्र के लिए हालिया पासपोर्ट साइज़ फोटो अपलोड करें।`,
+      `सबमिट करने से पहले अपना आवेदन ध्यान से जांचें।`,
+      `आपका आवेदन जमा हो गया! अब अपना EPIC कार्ड लें।`,
+    ],
+    bn: [
+      `${playerName}, দয়া করে আপনার ব্যক্তিগত তথ্য পূরণ করুন।`,
+      `এখন আপনার জন্ম তারিখ লিখুন। ভোটার হতে আপনার বয়স কমপক্ষে ১৮ বছর হতে হবে।`,
+      `আপনার ঠিকানা অনুযায়ী আপনার বিধানসভা কেন্দ্র বেছে নিন।`,
+      `আপনার ভোটার আইডি কার্ডের জন্য একটি সাম্প্রতিক পাসপোর্ট সাইজ ছবি আপলোড করুন।`,
+      `জমা দেওয়ার আগে আপনার আবেদনটি মনোযোগ দিয়ে পর্যালোচনা করুন।`,
+      `আপনার আবেদন জমা হয়েছে! এখন আপনার EPIC কার্ড সংগ্রহ করুন।`,
+    ],
+  };
+
   useEffect(() => {
     if (!playerName) { navigate("/create"); return; }
     goToLevel(0);
-    speak(`Welcome to Level 0, ${playerName}. You need to register as a voter on the NVSP portal. Let's fill out Form 6.`, { language, rate: 0.75 });
-    setTimeout(() => {
-      if (window.vivekSay) window.vivekSay("👋 Welcome! To vote, you must first register on the NVSP portal. Complete Form 6 to get your Voter ID (EPIC card). Let's start!");
-    }, 1000);
-
-    // Load first hint
     getLevelHint("/level/0", language).then(h => { if (h) setHint(h); });
-    // Rotate hint every 30s
     const hintInterval = setInterval(() => {
       getLevelHint("/level/0", language).then(h => { if (h) setHint(h); });
     }, 30000);
     return () => clearInterval(hintInterval);
   }, []);
+
+  // Speak instruction whenever step changes
+  useEffect(() => {
+    const narrations = STEP_NARRATION[language] || STEP_NARRATION.en;
+    const text = narrations[step];
+    if (text) {
+      stopSpeaking();
+      speak(text, { language, rate: 0.78 });
+    }
+  }, [step]);
 
   const validateDOB = (dob) => {
     if (!dob) return false;
@@ -57,55 +88,73 @@ export default function Level0() {
   };
 
   const handleDOBSubmit = () => {
-    if (!formData.dob) { setError("Please enter your date of birth."); return; }
+    if (!formData.dob) {
+      setError("Please enter your date of birth.");
+      speak("Please enter your date of birth to continue.", { language });
+      return;
+    }
     if (!validateDOB(formData.dob)) {
       const attempts = ageAttempts + 1;
       setAgeAttempts(attempts);
       setError("You must be at least 18 years old to register as a voter (Article 326 of the Constitution).");
-      if (window.vivekSay) window.vivekSay("Article 326 of the Constitution of India mandates that only citizens who are 18 years or older on the qualifying date can be enrolled as voters. Please enter your correct date of birth.", "alert");
-      speak("Article 326 of the Constitution requires you to be at least 18 years old.", { language });
-      if (attempts === 1) addIP(5, "CORRECT_AGE_AFTER_ERROR"); // Partial credit on retry
+      if (window.vivekSay) window.vivekSay("Article 326 of the Constitution mandates only citizens 18 or older can vote.", "alert");
+      speak("You must be at least 18 years old. Article 326 of the Constitution requires this.", { language });
+      if (attempts === 1) addIP(5, "CORRECT_AGE_AFTER_ERROR");
       return;
     }
     setError("");
     if (ageAttempts === 0) awardIPEvent("CORRECT_AGE_FIRST_TRY");
-    speak("Date of birth verified. You are eligible to vote!", { language });
+    // Speak confirmation ONLY after clicking verify
+    speak("Age verified! You are eligible to vote. Proceeding to constituency selection.", { language });
     setStep(2);
   };
 
   const handleConstituencySubmit = () => {
-    if (!formData.constituency) { setError("Please select your constituency."); return; }
+    if (!formData.constituency) {
+      setError("Please select your constituency.");
+      speak("Please select your constituency from the options shown.", { language });
+      return;
+    }
     if (formData.constituency === "South Kolkata") {
       if (constAttempts === 0) awardIPEvent("CORRECT_CONSTITUENCY");
       else addIP(5, "CONSTITUENCY_WITH_HELP");
-      speak("South Kolkata constituency confirmed!", { language });
+      // Confirmation only after correct selection + click
+      speak("Correct! South Kolkata constituency confirmed. Proceeding to photo upload.", { language });
       setError("");
       setStep(3);
     } else {
       setConstAttempts(c => c + 1);
       setError("Your address is in South Kolkata. Please select the correct constituency.");
-      if (window.vivekSay) window.vivekSay("Your residential address determines your constituency. Based on your pincode, you should be registered under South Kolkata. Delimitation defines these boundaries.", "alert");
+      if (window.vivekSay) window.vivekSay("Your residential address determines your constituency. Based on your pincode, you belong to South Kolkata.", "alert");
+      speak("Incorrect. Your address is in South Kolkata. Please select the correct one.", { language });
     }
   };
 
   const handlePhotoUpload = (e) => {
     if (e.target.files?.[0]) {
-      speak("Photo uploaded successfully!", { language });
+      speak("Photo uploaded successfully! Now review your application.", { language });
       setStep(4);
     }
   };
 
+  const handleSkipPhoto = () => {
+    speak("Photo skipped for simulation. Proceeding to review.", { language });
+    setStep(4);
+  };
+
   const handleSubmit = () => {
-    speak("Application submitted! Your Voter ID will arrive within 7 days.", { language });
+    // Confirmation after clicking Submit
+    speak("Application submitted successfully! Your Voter ID will be processed within 7 days.", { language });
     setStep(5);
     setTimeout(() => {
       setEpicReady(true);
-      speak(`${playerName}, your Voter ID card has arrived! You are now a registered voter of India.`, { language });
-    }, 2000);
+      speak(`Congratulations ${playerName}! Your EPIC Voter ID card has arrived. You are now a registered voter of India!`, { language });
+    }, 3000);
   };
 
   const handleCollectCard = () => {
     updateInventory({ epicCard: true });
+    speak("Voter ID collected! Let's head to the polling station.", { language });
     goToLevel(1);
     navigate("/level/1");
   };
@@ -214,7 +263,7 @@ export default function Level0() {
                     <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "6px" }}>Mobile (for OTP)</label>
                     <input className="input" defaultValue="+91 7439103897" readOnly id="form-mobile" />
                   </div>
-                  <button className="btn btn-primary" onClick={() => { setStep(1); speak("Basic details saved. Now verify your age.", { language }); }} id="step0-next">
+                  <button className="btn btn-primary" onClick={() => { setStep(1); }} id="step0-next">
                     Save & Continue →
                   </button>
                 </div>
@@ -279,7 +328,7 @@ export default function Level0() {
                   <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>JPG, PNG, max 2MB</span>
                   <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} />
                 </label>
-                <button className="btn btn-secondary" onClick={() => { speak("Photo skipped for simulation.", { language }); setStep(4); }}>
+                <button className="btn btn-secondary" onClick={handleSkipPhoto}>
                   Skip for now (simulation)
                 </button>
               </div>

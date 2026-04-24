@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGame } from "../../context/GameContext";
-import { speak, NPC_VOICES } from "../../services/tts";
+import { speak, stopSpeaking, NPC_VOICES } from "../../services/tts";
 import { Canvas, useFrame } from "@react-three/fiber";
+import Human3D from "../../components/Human3D";
 
 // ============================================================
 // 3D Booth Interior
@@ -19,10 +20,9 @@ function BoothInterior({ currentOfficer, inkPhase }) {
 
   return (
     <>
-      <ambientLight intensity={0.5} color="#FFF5E6" />
-      <directionalLight position={[3, 6, 4]} intensity={0.8} color="#FFFFFF" />
+      <ambientLight intensity={0.6} color="#FFF5E6" />
+      <directionalLight position={[3, 6, 4]} intensity={0.8} />
       <pointLight position={[0, 3, 0]} intensity={0.4} color="#FFF5E6" />
-      {/* Ceiling light glow */}
       <pointLight position={[0, 4, -1]} intensity={currentOfficer === 2 ? 0.8 : 0.3} color={inkPhase ? "#4F46E5" : "#FFF5E6"} />
 
       {/* Floor */}
@@ -30,12 +30,12 @@ function BoothInterior({ currentOfficer, inkPhase }) {
         <planeGeometry args={[10, 12]} />
         <meshStandardMaterial color="#E5E7EB" />
       </mesh>
-
-      {/* Walls */}
+      {/* Back wall */}
       <mesh position={[0, 2, -5]}>
         <planeGeometry args={[10, 6]} />
         <meshStandardMaterial color="#F3F4F6" />
       </mesh>
+      {/* Side walls */}
       <mesh position={[-5, 2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[12, 6]} />
         <meshStandardMaterial color="#F9FAFB" />
@@ -46,12 +46,11 @@ function BoothInterior({ currentOfficer, inkPhase }) {
       </mesh>
 
       {/* Officer Table */}
-      <group ref={tableRef} position={[0, -0.3, -2]}>
+      <group position={[0, -0.3, -2]}>
         <mesh>
           <boxGeometry args={[7, 0.1, 1.5]} />
           <meshStandardMaterial color="#92400E" />
         </mesh>
-        {/* Table legs */}
         {[[-3, -0.6, 0], [3, -0.6, 0]].map(([x, y, z], i) => (
           <mesh key={i} position={[x, y, z]}>
             <boxGeometry args={[0.1, 1.2, 1.5]} />
@@ -60,36 +59,28 @@ function BoothInterior({ currentOfficer, inkPhase }) {
         ))}
       </group>
 
-      {/* Officers */}
-      {[[-2.5, 0.5, -2], [0, 0.5, -2], [2.5, 0.5, -2]].map(([x, y, z], i) => (
-        <group key={i} position={[x, y, z]}>
-          {/* Body */}
-          <mesh position={[0, 0, 0]}>
-            <capsuleGeometry args={[0.2, 0.6, 6, 12]} />
-            <meshStandardMaterial color={currentOfficer === i ? "#2563EB" : "#6B7280"} />
-          </mesh>
-          {/* Head */}
-          <mesh position={[0, 0.7, 0]}>
-            <sphereGeometry args={[0.18, 16, 16]} />
-            <meshStandardMaterial color="#FDE68A" />
-          </mesh>
-          {/* Active indicator */}
-          {currentOfficer === i && (
-            <mesh position={[0, 1.2, 0]}>
-              <sphereGeometry args={[0.07, 8, 8]} />
-              <meshStandardMaterial color="#22C55E" emissive="#22C55E" emissiveIntensity={1} />
-            </mesh>
-          )}
-        </group>
+      {/* 3D Human Officers with Election Commission Khaki Uniform */}
+      {[[-2.5, -1, -1.5], [0, -1, -1.5], [2.5, -1, -1.5]].map(([x, y, z], i) => (
+        <Human3D
+          key={i}
+          position={[x, y, z]}
+          rotation={[0, 0, 0]}
+          gender="male"
+          shirtColor={currentOfficer === i ? "#1D4ED8" : "#6B7280"}
+          pantsColor="#374151"
+          skinTone={i === 0 ? "#C68642" : i === 1 ? "#8D5524" : "#FDBCB4"}
+          animation={currentOfficer === i ? "idle" : "sit"}
+          scale={0.75}
+        />
       ))}
 
-      {/* Voting compartment partition at back */}
-      <mesh position={[0, 0.5, -4.5]}>
-        <boxGeometry args={[2, 3, 0.1]} />
-        <meshStandardMaterial color="#1E3A5F" transparent opacity={0.8} />
+      {/* Active officer glow indicator */}
+      <mesh position={[[-2.5, 0, -1.5][0] + currentOfficer * 2.5, 0.8, -1.5]}>
+        <sphereGeometry args={[0.07, 8, 8]} />
+        <meshStandardMaterial color="#22C55E" emissive="#22C55E" emissiveIntensity={2} />
       </mesh>
 
-      {/* ECI banner on wall */}
+      {/* ECI banner */}
       <mesh position={[0, 3.5, -4.9]}>
         <planeGeometry args={[4, 0.8]} />
         <meshStandardMaterial color="#FF9933" />
@@ -391,25 +382,42 @@ export default function Level3() {
             </div>
           )}
 
-          {/* Fraud NPC encounter */}
+          {/* Fraud NPC encounter — fully explained */}
           {fraudShown && !fraudReported && (
             <div style={{
-              background: "rgba(239,68,68,0.1)", border: "2px solid rgba(239,68,68,0.4)",
+              background: "rgba(239,68,68,0.08)", border: "2px solid rgba(239,68,68,0.4)",
               borderRadius: "var(--radius-md)", padding: "16px", animation: "float-up 0.3s ease"
             }}>
-              <div style={{ fontWeight: 700, color: "#EF4444", marginBottom: "8px" }}>
-                ⚠️ Suspicious Activity!
+              <div style={{ fontWeight: 700, color: "#EF4444", marginBottom: "8px", fontSize: "0.95rem" }}>
+                ⚠️ Suspicious Accusation!
               </div>
-              <div className="dialogue-box" style={{ marginBottom: "14px", background: "rgba(239,68,68,0.05)" }}>
-                <div className="npc-name" style={{ color: "#EF4444" }}>🧑 UNKNOWN PERSON</div>
-                <p>"Officer! This voter's finger already has ink! They must have voted already!"</p>
+              <div className="dialogue-box" style={{ marginBottom: "12px", background: "rgba(239,68,68,0.05)" }}>
+                <div className="npc-name" style={{ color: "#EF4444" }}>🧑 UNKNOWN PERSON (stranger in booth)</div>
+                <p style={{ fontStyle: "italic" }}>"Officer! This voter's finger already has ink! They must have voted already!"</p>
               </div>
+
+              {/* Clear context explanation */}
+              <div style={{
+                background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)",
+                borderRadius: "var(--radius-sm)", padding: "12px", marginBottom: "14px", fontSize: "0.84rem"
+              }}>
+                <div style={{ fontWeight: 700, color: "#93C5FD", marginBottom: "6px" }}>🔍 What's happening?</div>
+                <p style={{ color: "#CBD5E1", margin: 0 }}>
+                  A stranger is falsely claiming YOUR ink mark (just applied by Officer 2) means you already voted. 
+                  This is a classic <strong style={{ color: "#FCA5A5" }}>voter impersonation fraud tactic</strong> — 
+                  they want to get you removed from the booth.
+                  <br /><br />
+                  <strong style={{ color: "#86EFAC" }}>The truth:</strong> You just received this ink from Officer 2 moments ago. 
+                  You have NOT voted yet. You must report this person to the <strong>Presiding Officer</strong>.
+                </p>
+              </div>
+
               <div style={{ display: "flex", gap: "10px" }}>
                 <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReportFraud} id="report-fraud-btn">
                   🚨 Report to Presiding Officer
                 </button>
                 <button className="btn btn-secondary" onClick={handleIgnoreFraud} id="ignore-fraud-btn">
-                  Ignore
+                  Ignore (−10 IP)
                 </button>
               </div>
             </div>
