@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, logEvent } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -77,6 +77,8 @@ export const saveGameProgress = async (uid, data) => {
       "gameData.inventory": data.inventory,
       lastUpdated: new Date()
     });
+    // Log analytics event
+    logEvent(analytics, 'save_progress', { level: data.level, ip: data.ip });
   } catch (error) {
     console.error("Save Progress Error:", error);
   }
@@ -96,6 +98,8 @@ export const saveCertificateData = async (uid, data) => {
       "certificate.date": new Date(),
       lastUpdated: new Date()
     });
+    // Log completion event
+    logEvent(analytics, 'certificate_issued', { score: data.ip, profile: data.profile });
   } catch (error) {
     console.error("Save Certificate Error:", error);
   }

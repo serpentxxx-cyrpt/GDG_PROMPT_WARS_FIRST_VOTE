@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
 import { IP_EVENTS, IP_THRESHOLDS, VOTER_PROFILES, TRANSLATIONS } from "../data/gameData";
-import { saveGameProgress, loadGameProgress } from "../services/firebase";
+import { saveGameProgress, loadGameProgress, auth } from "../services/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 // ============================================================
 // INITIAL STATE
@@ -150,6 +151,18 @@ const GameContext = createContext(null);
 
 export const GameProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, INITIAL_STATE);
+
+  // Sync with Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        dispatch({ type: "SET_USER_ID", payload: user.uid });
+      } else {
+        dispatch({ type: "SET_USER_ID", payload: null });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Auto-save progress when level changes
   useEffect(() => {

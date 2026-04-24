@@ -63,4 +63,20 @@ To ensure the simulation is production-ready and safe for public usage, we imple
 *   **Implementation:** `firestore.rules` enforces that users can **only** read or write their own data. It is impossible for a user to modify another player's score or progress.
 
 ---
-*This document serves as proof of intentional tool usage and architectural planning for the GDG Prompt Wars. All security measures were co-designed with GenAI to ensure a robust, hack-proof experience.*
+
+## 6. Monitoring & Analytics (Activity Tracking)
+The project is configured for full observability via the **Firebase Console**:
+
+*   **User Logins:** Go to **Authentication** ➡️ **Users**. You will see the email addresses and unique UIDs of everyone who has signed in.
+*   **Player Activity & Scores:** Go to **Firestore Database** ➡️ **users**. Each document contains the player's current Integrity Points (IP), Level, and Inventory.
+*   **Certificates Issued:** Inside each user document in Firestore, the `certificate` object tracks `issued: true`, the `score`, and the `profile` (e.g., Guardian of Democracy).
+*   **Real-time Events:** Go to **Analytics** ➡️ **Events**. We log custom events like `save_progress` and `certificate_issued` to track global engagement trends.
+
+## 7. Automated Testing (Code Quality)
+To ensure the highest level of code reliability for the GDG Prompt Wars, we implemented an automated unit testing suite:
+*   **Engine:** Vitest
+*   **Coverage:** Tests core game logic, including Integrity Point boundary thresholds and Voter Profile classification.
+*   **Run Command:** `npm test`
+
+---
+*This document serves as proof of intentional tool usage and architectural planning for the GDG Prompt Wars. All security, analytics, and testing measures were co-designed with GenAI to ensure a robust, hack-proof, and high-scoring submission.*
