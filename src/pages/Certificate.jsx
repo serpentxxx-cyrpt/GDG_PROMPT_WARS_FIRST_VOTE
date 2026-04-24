@@ -4,7 +4,7 @@ import { useGame } from "../context/GameContext";
 import { VOTER_PROFILES } from "../data/gameData";
 import { saveCertificateData } from "../services/firebase";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 export default function Certificate() {
   const { playerName, playerGender, ip, voterProfile, resetGame } = useGame();
@@ -30,18 +30,33 @@ export default function Certificate() {
     if (!certRef.current) return;
     setDownloading(true);
     try {
+      // Force scroll to top before capture to prevent clipping bugs
+      window.scrollTo(0, 0);
+      
       const canvas = await html2canvas(certRef.current, {
         scale: 2,
         backgroundColor: "#080C14",
         useCORS: true,
+        logging: false,
+        onclone: (doc) => {
+          // Temporarily remove max-width constraints for the clone so it renders at full quality
+          const el = doc.getElementById('cert-capture-area');
+          if (el) {
+            el.style.maxWidth = '800px';
+            el.style.width = '800px';
+            el.style.transform = 'none';
+          }
+        }
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [canvas.width / 2, canvas.height / 2] });
       pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
-      pdf.save(`TheFirstVote_Certificate_${playerName?.replace(/\s/g, "_")}.pdf`);
+      
+      const safeName = (playerName || "Citizen").replace(/[^a-zA-Z0-9]/g, "_");
+      pdf.save(`TheFirstVote_Certificate_${safeName}.pdf`);
     } catch (err) {
       console.error("Download error:", err);
-      alert("Download failed. Try right-clicking the certificate and saving as image.");
+      alert("Download failed. Please take a screenshot of your certificate!");
     } finally {
       setDownloading(false);
     }
@@ -64,9 +79,21 @@ export default function Certificate() {
       </p>
 
       {/* Certificate */}
-      <div ref={certRef} className="certificate-container" style={{ width: "100%", maxWidth: "640px" }}>
+      <div 
+        id="cert-capture-area"
+        ref={certRef} 
+        className="certificate-container" 
+        style={{ 
+          width: "100%", 
+          maxWidth: "640px", 
+          padding: "30px 20px", 
+          position: "relative",
+          margin: "0 auto",
+          overflow: "hidden" 
+        }}
+      >
         {/* Header decoration */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "4px", background: `linear-gradient(to right, var(--color-saffron), ${badge.color}, var(--color-blue-mid))` }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "6px", background: `linear-gradient(to right, var(--color-saffron), ${badge.color}, var(--color-blue-mid))` }} />
         <div style={{ position: "absolute", inset: "12px", border: `1px solid ${badge.color}30`, borderRadius: "calc(var(--radius-xl) - 8px)", pointerEvents: "none" }} />
 
         {/* Logo */}
@@ -97,15 +124,15 @@ export default function Certificate() {
         </div>
 
         {/* Score */}
-        <div style={{ display: "flex", gap: "40px", justifyContent: "center", marginBottom: "24px" }}>
+        <div style={{ display: "flex", gap: "clamp(10px, 4vw, 40px)", justifyContent: "center", flexWrap: "wrap", marginBottom: "24px" }}>
           {[
             { label: "Integrity Points", value: ip },
             { label: "Max Possible", value: 210 },
             { label: "Percentile", value: `${Math.round((ip / 210) * 100)}%` },
           ].map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "1.8rem", fontWeight: 900, color: badge.color }}>{s.value}</div>
-              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{s.label}</div>
+            <div key={s.label} style={{ textAlign: "center", minWidth: "80px" }}>
+              <div style={{ fontSize: "clamp(1.2rem, 3vw, 1.8rem)", fontWeight: 900, color: badge.color }}>{s.value}</div>
+              <div style={{ fontSize: "clamp(0.5rem, 2vw, 0.7rem)", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -119,13 +146,13 @@ export default function Certificate() {
         </div>
 
         {/* Footer */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "10px", fontSize: "clamp(0.6rem, 2vw, 0.75rem)", color: "var(--text-muted)" }}>
           <div>
             <div style={{ fontWeight: 700, color: "var(--text-secondary)" }}>Tridibesh Sen</div>
             <div>Developer · IEM Newtown, Kolkata</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "0.6rem", marginBottom: "4px" }}>VERIFIED BY VIVEK AI</div>
+            <div style={{ fontSize: "clamp(0.5rem, 1.5vw, 0.6rem)", marginBottom: "4px" }}>VERIFIED BY VIVEK AI</div>
             <div style={{ fontSize: "1.2rem" }}>🔵</div>
           </div>
           <div style={{ textAlign: "right" }}>
