@@ -316,3 +316,37 @@ export const translateText = async (text, targetLanguage) => {
     return text;
   }
 };
+
+// ============================================================
+// DYNAMIC SCENARIO GENERATION (Structured JSON Output)
+// ============================================================
+export const generateDynamicScenario = async (level, language = "en") => {
+  if (!isGeminiAvailable) return null;
+
+  const langMap = { en: "English", hi: "Hindi", bn: "Bengali" };
+  const prompt = `Generate a dynamic multiple-choice question for an Indian voter education game.
+Level context: ${level}.
+Language: ${langMap[language] || "English"}.
+You must respond with a valid JSON object matching this schema:
+{
+  "question": "The scenario text",
+  "options": [
+    { "text": "Option A", "isCorrect": false },
+    { "text": "Option B", "isCorrect": true }
+  ],
+  "explanation": "Why the answer is correct"
+}`;
+
+  try {
+    const jsonModel = genAI.getGenerativeModel({
+      model: MODEL_PRIORITY[0],
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    const result = await jsonModel.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  } catch (err) {
+    console.error("JSON generation error:", err);
+    return null;
+  }
+};
+
