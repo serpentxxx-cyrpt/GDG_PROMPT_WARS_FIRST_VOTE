@@ -26,6 +26,7 @@ import Level4 from "./pages/levels/Level4";
 import Level5 from "./pages/levels/Level5";
 import Epilogue from "./pages/Epilogue";
 import Certificate from "./pages/Certificate";
+import Leaderboard from "./pages/Leaderboard";
 
 // Error boundary
 class ErrorBoundary extends React.Component {
@@ -78,6 +79,13 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+/**
+ * Root Application Component.
+ * Sets up routing, global providers, and core UI elements.
+ * 
+ * @component
+ * @returns {JSX.Element} The rendered application
+ */
 function App() {
   const [musicMuted, setMusicMutedState] = useState(
     () => localStorage.getItem('tfv_music_muted') === 'true'
@@ -99,6 +107,16 @@ function App() {
       document.removeEventListener('click', handleFirstClick);
       document.removeEventListener('keydown', handleFirstClick);
     };
+  }, []);
+
+  // Global Vivek voice handler since the chatbox is removed during gameplay
+  useEffect(() => {
+    import('./services/tts').then(({ speak, NPC_VOICES }) => {
+      window.vivekSay = (text, state = "normal") => {
+        const lang = localStorage.getItem('tfv_state') ? JSON.parse(localStorage.getItem('tfv_state')).language : 'en';
+        speak(text, { language: lang || 'en', ...NPC_VOICES.VIVEK });
+      };
+    });
   }, []);
 
   const toggleMusic = () => {
@@ -128,6 +146,7 @@ function App() {
             <Route path="/level/5" element={<ProtectedRoute><Level5 /></ProtectedRoute>} />
             <Route path="/epilogue" element={<ProtectedRoute><Epilogue /></ProtectedRoute>} />
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           {/* Vivek + IP Meter only show during game */}
@@ -139,6 +158,8 @@ function App() {
             id="music-toggle-btn"
             onClick={toggleMusic}
             title={musicMuted ? 'Unmute background music' : 'Mute background music'}
+            aria-label={musicMuted ? 'Unmute background music' : 'Mute background music'}
+            aria-pressed={!musicMuted}
             style={{
               position: 'fixed', bottom: '80px', right: '20px',
               width: '42px', height: '42px', borderRadius: '50%',

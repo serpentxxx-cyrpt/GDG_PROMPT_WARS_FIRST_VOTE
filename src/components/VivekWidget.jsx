@@ -1,33 +1,19 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useGame } from "../context/GameContext";
 import { askVivek, isGeminiAvailable } from "../services/gemini";
-import { speak, NPC_VOICES } from "../services/tts";
 import { useLocation } from "react-router-dom";
-
-const LEVEL_NAMES = {
-  "/level/0": "Level 0: Registration",
-  "/level/1": "Level 1: Campaign Gauntlet",
-  "/level/2": "Level 2: Document Wallet",
-  "/level/3": "Level 3: Three-Officer Protocol",
-  "/level/4": "Level 4: Voting Compartment",
-  "/level/5": "Level 5: Result Day",
-  "/prologue": "Prologue",
-  "/epilogue": "Epilogue",
-};
-
-const GAME_PATHS = ["/level", "/prologue", "/epilogue", "/create"];
 
 // Greeting message per language
 const GREETING = {
-  en: "Namaste! I'm Vivek, your Democratic Conscience. Ask me anything about the election process! 🗳️",
-  hi: "नमस्ते! मैं विवेक हूं, आपकी लोकतांत्रिक चेतना। चुनाव प्रक्रिया के बारे में कुछ भी पूछें! 🗳️",
-  bn: "নমস্কার! আমি বিবেক, আপনার গণতান্ত্রিক চেতনা। নির্বাচন প্রক্রিয়া সম্পর্কে যেকোনো কিছু জিজ্ঞেস করুন! 🗳️",
+  en: "Namaste! I'm Vivek, your AI Helpdesk. Ask me anything about voting, election results, or rules! 🗳️",
+  hi: "नमस्ते! मैं विवेक हूं, आपका एआई हेल्पडेस्क। मतदान, चुनाव परिणाम या नियमों के बारे में कुछ भी पूछें! 🗳️",
+  bn: "নমস্কার! আমি বিবেক, আপনার এআই হেল্পডেস্ক। ভোট, নির্বাচনের ফলাফল বা নিয়ম সম্পর্কে যেকোনো কিছু জিজ্ঞেস করুন! 🗳️",
 };
 
 const PLACEHOLDER = {
-  en: "Ask Vivek anything...",
-  hi: "विवेक से कुछ भी पूछें...",
-  bn: "বিবেককে যেকোনো কিছু জিজ্ঞেস করুন...",
+  en: "Ask Vivek anything about voting...",
+  hi: "विवेक से मतदान के बारे में कुछ भी पूछें...",
+  bn: "বিবেককে ভোট সম্পর্কে যেকোনো কিছু জিজ্ঞেস করুন...",
 };
 
 const THINKING = {
@@ -37,7 +23,7 @@ const THINKING = {
 };
 
 export default function VivekWidget() {
-  const { playerName, language, ip, isGameStarted, t, constituency } = useGame();
+  const { language, t } = useGame();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -45,16 +31,12 @@ export default function VivekWidget() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [orbState, setOrbState] = useState("normal"); // normal | alert | success
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const currentSpeechRef = useRef(null); // track active speech, don't kill on panel close
 
-  const isGameRoute = GAME_PATHS.some(p => location.pathname.startsWith(p));
+  // ONLY show on landing and leaderboard
+  const isHelpdeskRoute = location.pathname === "/" || location.pathname === "/leaderboard";
 
-  // (early return moved to after all hooks — see below)
-
-  // When language changes, update the greeting
   useEffect(() => {
     setMessages([{ id: 1, from: "vivek", text: GREETING[language] || GREETING.en }]);
   }, [language]);
@@ -64,11 +46,6 @@ export default function VivekWidget() {
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
-
-  // Speak text in the current game language — does NOT stop when chat closes
-  const vivekSpeak = useCallback((text) => {
-    speak(text, { language, ...NPC_VOICES.VIVEK });
-  }, [language]);
 
   const sendMessage = async () => {
     const trimmed = input.trim();
@@ -84,36 +61,31 @@ export default function VivekWidget() {
 
       if (isGeminiAvailable) {
         response = await askVivek({
-          playerName: playerName || "Player",
-          level: LEVEL_NAMES[location.pathname] || "Game",
+          playerName: "Citizen",
+          level: "Helpdesk",
           language,
-          ipScore: ip,
+          ipScore: 0,
           userMessage: trimmed,
-          gameContext: `Player is at: ${location.pathname}. Language: ${language}. Respond ONLY in ${language === "hi" ? "Hindi (Hinglish)" : language === "bn" ? "Bengali (বাংলা)" : "English"}.`,
-          constituency,
+          gameContext: `User is at the Helpdesk. Language: ${language}. You are Vivek, an AI Helpdesk. Answer ONLY questions based on voting, election results, rules, or the Electoral system. Keep it brief. Respond ONLY in ${language === "hi" ? "Hindi (Hinglish)" : language === "bn" ? "Bengali (বাংলা)" : "English"}.`,
+          constituency: "India",
         });
       } else {
-        // Fallback responses in correct language
         const fallbacks = {
-          en: "Great question! The Election Commission of India ensures free and fair elections through strict protocols. Always follow the Presiding Officer's instructions at the booth.",
-          hi: "बहुत अच्छा सवाल! भारत का चुनाव आयोग कड़े नियमों से स्वतंत्र और निष्पक्ष चुनाव सुनिश्चित करता है।",
-          bn: "চমৎকার প্রশ্ন! ভারতের নির্বাচন কমিশন কঠোর নিয়মের মাধ্যমে স্বাধীন ও নিরপেক্ষ নির্বাচন নিশ্চিত করে।",
+          en: "The Election Commission of India ensures free and fair elections through strict protocols.",
+          hi: "भारत का चुनाव आयोग कड़े नियमों से स्वतंत्र और निष्पक्ष चुनाव सुनिश्चित करता है।",
+          bn: "ভারতের নির্বাচন কমিশন কঠোর নিয়মের মাধ্যমে স্বাধীন ও নিরপেক্ষ নির্বাচন নিশ্চিত করে।",
         };
         response = fallbacks[language] || fallbacks.en;
       }
 
       const vivekMsg = { id: Date.now() + 1, from: "vivek", text: response };
       setMessages(prev => [...prev, vivekMsg]);
-
-      // Speak response in selected language — independent of chat panel state
-      vivekSpeak(response);
-
     } catch (err) {
       console.error("Vivek send error:", err);
       const errMsgs = {
-        en: "I'm having trouble connecting right now. But remember: when in doubt, ask the Presiding Officer at the booth!",
-        hi: "मुझे अभी कनेक्ट करने में परेशानी हो रही है। लेकिन याद रखें: संदेह होने पर पीठासीन अधिकारी से पूछें!",
-        bn: "আমি এখন সংযোগ করতে পারছি না। কিন্তু মনে রাখবেন: সন্দেহ হলে প্রিসাইডিং অফিসারকে জিজ্ঞেস করুন!",
+        en: "I'm having trouble connecting right now. Please try again.",
+        hi: "मुझे अभी कनेक्ट करने में परेशानी हो रही है। कृपया पुनः प्रयास करें।",
+        bn: "আমি এখন সংযোগ করতে পারছি না। অনুগ্রহ করে আবার চেষ্টা করুন।",
       };
       const errMsg = { id: Date.now() + 1, from: "vivek", text: errMsgs[language] || errMsgs.en };
       setMessages(prev => [...prev, errMsg]);
@@ -129,49 +101,31 @@ export default function VivekWidget() {
     }
   };
 
-  // Expose global hook for game levels to push messages
-  useEffect(() => {
-    window.vivekSay = (text, state = "normal") => {
-      setOrbState(state);
-      // Translate to current language if possible — game events trigger this
-      const msg = { id: Date.now(), from: "vivek", text };
-      setMessages(prev => [...prev, msg]);
-
-      // Remove auto-open to prevent intruding on gameplay
-      // setIsOpen(true);
-      setTimeout(() => setOrbState("normal"), 4000);
-
-      // Speak in selected language
-      vivekSpeak(text);
-    };
-    return () => { window.vivekSay = null; };
-  }, [language, vivekSpeak]);
-
-  // Only render during actual gameplay routes
-  if (!isGameRoute) return null;
-
+  if (!isHelpdeskRoute) return null;
 
   return (
     <>
-      {/* Chat Panel — rendered OUTSIDE the orb container to avoid z-index stacking */}
       {isOpen && (
         <div
+          id="vivek-chat-panel"
           className="vivek-chat-panel"
           style={{
-            // Positioned from right edge, above the orb, max height so it never covers game buttons
             position: "fixed",
-            bottom: "96px",  // orb(60) + gap(12) + orb-offset(24) = 96
+            bottom: "96px",
             right: "24px",
             zIndex: 2001,
             width: "340px",
-            maxHeight: "50vh", // Never taller than half the screen
+            maxHeight: "50vh",
             display: "flex",
             flexDirection: "column",
             animation: "float-up 0.25s ease",
+            background: "var(--bg-glass)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-subtle)"
           }}
         >
-          {/* Header */}
-          <div className="vivek-chat-header">
+          <div className="vivek-chat-header" style={{ padding: "12px", borderBottom: "1px solid var(--border-subtle)", display: "flex", alignItems: "center", gap: "8px" }}>
             <div style={{
               width: "28px", height: "28px", borderRadius: "50%",
               background: "radial-gradient(circle, #60A5FA, #1A3A6B)",
@@ -180,7 +134,7 @@ export default function VivekWidget() {
             }}>✦</div>
             <div>
               <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#F0F4FF" }}>
-                {language === "hi" ? "विवेक" : language === "bn" ? "বিবেক" : "Vivek"}
+                AI Helpdesk (Vivek)
               </div>
               <div style={{ fontSize: "0.65rem", color: "#94A3B8", display: "flex", alignItems: "center", gap: "4px" }}>
                 <span style={{
@@ -191,7 +145,6 @@ export default function VivekWidget() {
                 {isGeminiAvailable ? "Gemini AI · Live" : "Fallback mode"}
               </div>
             </div>
-            {/* Close — does NOT stop voice */}
             <button
               onClick={() => setIsOpen(false)}
               style={{
@@ -199,34 +152,29 @@ export default function VivekWidget() {
                 color: "#94A3B8", cursor: "pointer", fontSize: "1rem",
                 padding: "4px", borderRadius: "4px",
               }}
-              title="Close chat (voice continues)"
-              aria-label="Close Vivek chat"
             >✕</button>
           </div>
 
-          {/* Messages */}
-          <div className="vivek-chat-messages" style={{ flex: 1, overflowY: "auto" }}>
+          <div className="vivek-chat-messages" style={{ flex: 1, overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {messages.map((msg, idx) => (
               <div
                 key={`${msg.id}-${idx}`}
                 className={`vivek-message ${msg.from === "user" ? "user-message" : ""}`}
+                style={{
+                  background: msg.from === "user" ? "rgba(255,153,51,0.15)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${msg.from === "user" ? "rgba(255,153,51,0.3)" : "rgba(255,255,255,0.1)"}`,
+                  padding: "8px 12px",
+                  borderRadius: msg.from === "user" ? "12px 12px 0 12px" : "12px 12px 12px 0",
+                  alignSelf: msg.from === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                  fontSize: "0.85rem"
+                }}
               >
-                {msg.from === "vivek" && (
-                  <span style={{
-                    fontSize: "0.65rem", color: "var(--color-saffron)",
-                    fontWeight: 700, display: "block", marginBottom: "4px"
-                  }}>
-                    {language === "hi" ? "🔵 विवेक" : language === "bn" ? "🔵 বিবেক" : "🔵 VIVEK"}
-                  </span>
-                )}
                 {msg.text}
               </div>
             ))}
             {isLoading && (
-              <div className="vivek-message">
-                <span style={{ fontSize: "0.65rem", color: "var(--color-saffron)", fontWeight: 700, display: "block", marginBottom: "4px" }}>
-                  {language === "hi" ? "🔵 विवेक" : language === "bn" ? "🔵 বিবেক" : "🔵 VIVEK"}
-                </span>
+              <div className="vivek-message" style={{ background: "rgba(255,255,255,0.05)", padding: "8px 12px", borderRadius: "12px 12px 12px 0", alignSelf: "flex-start", fontSize: "0.85rem" }}>
                 <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
                   {THINKING[language] || THINKING.en}
                   <span style={{ animation: "orb-pulse 1s infinite" }}> ●</span>
@@ -236,8 +184,7 @@ export default function VivekWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="vivek-chat-input">
+          <div className="vivek-chat-input" style={{ padding: "12px", borderTop: "1px solid var(--border-subtle)", display: "flex", gap: "8px" }}>
             <input
               ref={inputRef}
               value={input}
@@ -246,32 +193,32 @@ export default function VivekWidget() {
               placeholder={PLACEHOLDER[language] || PLACEHOLDER.en}
               disabled={isLoading}
               autoFocus
+              style={{ flex: 1, background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-md)", padding: "8px 12px", color: "white", fontSize: "0.85rem" }}
             />
             <button
-              className="vivek-send-btn"
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              title="Send"
+              style={{ background: "var(--color-saffron)", color: "white", border: "none", borderRadius: "var(--radius-md)", width: "36px", height: "36px", cursor: isLoading || !input.trim() ? "not-allowed" : "pointer", opacity: isLoading || !input.trim() ? 0.5 : 1, display: "flex", alignItems: "center", justifyContent: "center" }}
             >➤</button>
           </div>
         </div>
       )}
 
-      {/* Orb Button */}
       <div className="vivek-widget">
         <button
-          className={`vivek-orb ${orbState}`}
+          className="vivek-orb normal"
           onClick={() => {
             setIsOpen(prev => {
               if (!prev) setTimeout(() => inputRef.current?.focus(), 100);
               return !prev;
             });
           }}
-          title={t("vivekTitle")}
-          aria-label="Open Vivek AI Assistant"
-          id="vivek-orb-btn"
+          title="AI Helpdesk"
+          aria-label={isOpen ? "Close AI Helpdesk" : "Open AI Helpdesk"}
+          aria-expanded={isOpen}
+          aria-controls="vivek-chat-panel"
         >
-          🔵
+          {isOpen ? "✕" : "💬"}
         </button>
       </div>
     </>

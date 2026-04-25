@@ -42,6 +42,9 @@ export default function Navbar() {
                 <div
                   key={name}
                   title={name}
+                  role="status"
+                  aria-label={`Level ${levelNum + 1}: ${name} (${active ? 'Active' : complete ? 'Completed' : 'Locked'})`}
+                  aria-current={active ? "step" : undefined}
                   style={{
                     width: "8px", height: "8px", borderRadius: "50%",
                     background: complete ? "var(--color-green)" : active ? "var(--color-saffron)" : "var(--border-subtle)",
@@ -58,6 +61,7 @@ export default function Navbar() {
       ) : (
         <ul className="navbar-links">
           <li><Link to="/" id="nav-home">Home</Link></li>
+          <li><Link to="/leaderboard" id="nav-leaderboard">🏆 Leaderboard</Link></li>
           <li><Link to="/learn" id="nav-learn">{t("learn")}</Link></li>
           <li><Link to="/settings" id="nav-settings">⚙️ Settings</Link></li>
           <li>

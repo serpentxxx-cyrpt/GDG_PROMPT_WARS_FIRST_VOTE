@@ -72,15 +72,45 @@ export const saveGameProgress = async (uid, data) => {
   const userRef = doc(db, "users", uid);
   try {
     await updateDoc(userRef, {
+      "name": data.playerName || "Anonymous",
       "gameData.ip": data.ip,
-      "gameData.level": data.level,
-      "gameData.inventory": data.inventory,
+      "gameData.level": data.currentLevel || data.level,
+      "gameData.inventory": data.inventory || {},
       lastUpdated: new Date()
     });
     // Log analytics event
-    logEvent(analytics, 'save_progress', { level: data.level, ip: data.ip });
+    logEvent(analytics, 'save_progress', { level: data.currentLevel || data.level, ip: data.ip });
   } catch (error) {
     console.error("Save Progress Error:", error);
+  }
+};
+
+/**
+ * Fetch leaderboard data
+ */
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+
+export const getLeaderboard = async () => {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, orderBy("gameData.ip", "desc"), limit(50));
+    const querySnapshot = await getDocs(q);
+    const leaderboard = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      leaderboard.push({
+        id: doc.id,
+        name: data.name || "Anonymous",
+        ip: data.gameData?.ip || 0,
+        level: data.gameData?.level || 0,
+        photoURL: data.photoURL,
+        certificate: data.certificate
+      });
+    });
+    return leaderboard;
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    return [];
   }
 };
 

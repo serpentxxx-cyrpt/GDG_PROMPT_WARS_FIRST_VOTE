@@ -9,8 +9,7 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 let genAI = null;
 let model = null;
-
-const MODEL_PRIORITY = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+const MODEL_PRIORITY = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
 
 // Security: Rate Limiting
 let lastCallTime = 0;
@@ -43,7 +42,9 @@ const FALLBACK_RESPONSES = {
   document: "The ECI accepts 12 specific documents for voter identification. These include your Voter ID (EPIC), Aadhaar Card, Passport, MNREGA Card, and others. College IDs and PAN cards are NOT accepted.",
   vvpat: "The VVPAT shows your vote as a printed slip for 7 seconds. If the symbol doesn't match your choice, immediately alert the Presiding Officer.",
   ink: "The indelible ink is applied to your left forefinger before voting. Manufactured by Mysore Paints and Varnish Ltd., it lasts 14-21 days. No solvent can remove it.",
-  general: "I'm Vivek, your Democratic Conscience! Ask me anything about your rights as a voter, the EVM, or electoral laws.",
+  evm: "The Electronic Voting Machine (EVM) is a secure, standalone device used to cast votes in India. It consists of a Control Unit and a Ballot Unit.",
+  age: "According to Article 326 of the Constitution, the minimum age for voting in India is 18 years.",
+  general: "I'm experiencing high server load (API Quota Exceeded). As an AI Helpdesk, I'm temporarily running on basic fallback mode. Try asking about specific topics like EVM, VVPAT, bribery, or voting age.",
 };
 
 const FALLBACK_RESPONSES_HI = {
@@ -52,7 +53,9 @@ const FALLBACK_RESPONSES_HI = {
   document: "ECI 12 विशिष्ट दस्तावेज़ स्वीकार करता है — Voter ID, Aadhaar, Passport आदि। College ID और PAN card नहीं चलते।",
   vvpat: "VVPAT 7 सेकंड के लिए पर्ची दिखाता है। अगर प्रतीक गलत हो तो तुरंत पीठासीन अधिकारी को बताएं।",
   ink: "अमिट स्याही आपकी बाईं तर्जनी पर लगाई जाती है। यह 14-21 दिन रहती है — कोई भी सॉल्वेंट इसे नहीं हटा सकता।",
-  general: "मैं विवेक हूं, आपकी लोकतांत्रिक चेतना! मुझसे मतदान प्रक्रिया के बारे में कुछ भी पूछें।",
+  evm: "इलेक्ट्रॉनिक वोटिंग मशीन (EVM) भारत में मतदान के लिए उपयोग किया जाने वाला एक सुरक्षित उपकरण है।",
+  age: "संविधान के अनुच्छेद 326 के अनुसार, भारत में मतदान के लिए न्यूनतम आयु 18 वर्ष है।",
+  general: "सर्वर पर अधिक लोड है (API कोटा समाप्त)। मैं अभी बुनियादी मोड पर चल रहा हूँ। EVM, VVPAT या मतदान की आयु के बारे में पूछें।",
 };
 
 const FALLBACK_RESPONSES_BN = {
@@ -61,7 +64,9 @@ const FALLBACK_RESPONSES_BN = {
   document: "ECI ১২টি নির্দিষ্ট নথি গ্রহণ করে — Voter ID, Aadhaar, Passport ইত্যাদি। College ID ও PAN card গ্রহণযোগ্য নয়।",
   vvpat: "VVPAT ৭ সেকেন্ডের জন্য স্লিপ দেখায়। প্রতীক ভুল হলে তাৎক্ষণিক প্রিসাইডিং অফিসারকে জানান।",
   ink: "অমোচনীয় কালি বাম তর্জনীতে লাগানো হয়। এটি ১৪-২১ দিন থাকে — কোনো দ্রাবক এটি তুলতে পারে না।",
-  general: "আমি বিবেক, আপনার গণতান্ত্রিক চেতনা! ভোট প্রক্রিয়া সম্পর্কে যেকোনো কিছু জিজ্ঞেস করুন।",
+  evm: "ইলেকট্রনিক ভোটিং মেশিন (EVM) হলো ভারতে ভোট দেওয়ার জন্য ব্যবহৃত একটি নিরাপদ ডিভাইস।",
+  age: "সংবিধানের ৩২৬ অনুচ্ছেদ অনুযায়ী, ভারতে ভোট দেওয়ার ন্যূনতম বয়স ১৮ বছর।",
+  general: "সার্ভারে খুব বেশি লোড রয়েছে (API কোটা শেষ)। আমি এখন সাধারণ মোডে চলছি। EVM, VVPAT বা ভোটের বয়স সম্পর্কে জিজ্ঞাসা করুন।",
 };
 
 const getFallbackResponse = (context, language = "en") => {
@@ -72,6 +77,8 @@ const getFallbackResponse = (context, language = "en") => {
   if (msg.includes("document") || msg.includes("id card") || msg.includes("पहचान") || msg.includes("পরিচয়")) return map.document;
   if (msg.includes("vvpat") || msg.includes("slip") || msg.includes("paper") || msg.includes("पर्ची") || msg.includes("স্লিপ")) return map.vvpat;
   if (msg.includes("ink") || msg.includes("finger") || msg.includes("स्याही") || msg.includes("কালি")) return map.ink;
+  if (msg.includes("evm") || msg.includes("machine") || msg.includes("मशीन") || msg.includes("মেশিন")) return map.evm;
+  if (msg.includes("age") || msg.includes("years") || msg.includes("old") || msg.includes("आयु") || msg.includes("বয়স")) return map.age;
   return map.general;
 };
 
@@ -119,6 +126,12 @@ Player: "${userMessage}"`;
       }
     } catch (error) {
       console.warn(`Model ${MODEL_PRIORITY[i]} failed:`, error?.message || error);
+      
+      // If it's a quota error, immediately return fallback so we don't spam other models
+      if (error?.message?.includes("Quota") || error?.message?.includes("429")) {
+        return getFallbackResponse(userMessage, language);
+      }
+
       if (i === MODEL_PRIORITY.length - 1) {
         // All models exhausted
         return getFallbackResponse(userMessage, language);
